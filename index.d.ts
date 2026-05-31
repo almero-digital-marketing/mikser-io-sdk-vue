@@ -112,6 +112,57 @@ export declare function createMikserRouter(
     options: CreateMikserRouterOptions,
 ): Promise<Router>
 
+export interface UseMikserRoutesOptions {
+    /** Defaults to the injected client. */
+    client?: EntitiesClient
+    /**
+     * Which documents become routes. Default:
+     *   { 'meta.published': true, 'meta.route': { $exists: true } }
+     */
+    filter?: Filter
+    /** Maps a document into a Vue Router RouteRecordRaw. */
+    mapRoute: (document: any) => RouteRecordRaw | null | undefined
+}
+
+/**
+ * Live reactive list of route records from the mikser catalog. Returns
+ * a shallowRef that re-assigns whenever a matching entity is created,
+ * updated, or deleted server-side. Use to compose mikser-driven routes
+ * with your own routes — feed `.value` into your own createRouter()
+ * call.
+ *
+ * For composing with an existing router instance, prefer
+ * `useMikserRoutesSync` — it does the diff + addRoute/removeRoute for you.
+ */
+export declare function useMikserRoutes(
+    options: UseMikserRoutesOptions,
+): Ref<RouteRecordRaw[]>
+
+export interface UseMikserRoutesSyncOptions {
+    client?: EntitiesClient
+    filter?: Filter
+    /**
+     * Maps a document into a Vue Router RouteRecordRaw. **Must return a
+     * route with a `name`** — addRoute / removeRoute use it as the diff
+     * key. Routes without a name are silently skipped.
+     */
+    mapRoute: (document: any) => RouteRecordRaw | null | undefined
+}
+
+/**
+ * Keep an existing vue-router instance in sync with the mikser catalog
+ * via addRoute / removeRoute. Right when you already have a router with
+ * your own static / dynamic routes and want mikser to slot in alongside
+ * them, without rebuilding the whole router.
+ *
+ * Returns a dispose function; also auto-disposes on the surrounding
+ * effect scope's teardown.
+ */
+export declare function useMikserRoutesSync(
+    router: Router,
+    options: UseMikserRoutesSyncOptions,
+): () => void
+
 export interface GenerateMikserRoutesOptions {
     client: EntitiesClient
     mapRoute: (document: any) => RouteRecordRaw
@@ -119,7 +170,7 @@ export interface GenerateMikserRoutesOptions {
 }
 
 /**
- * Build-time helper. One-shot list() that returns an array of route
+ * Build-time helper. One-shot listAll() that returns an array of route
  * definitions for static-site generators (Vite SSG, Nuxt static, etc.).
  */
 export declare function generateMikserRoutes(

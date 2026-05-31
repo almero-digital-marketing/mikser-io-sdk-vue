@@ -9,7 +9,8 @@
 //
 //   src/plugin.js     createMikserPlugin, useMikserClient
 //   src/documents.js  useDocument, useDocuments
-//   src/router.js     createMikserRouter, generateMikserRoutes
+//   src/router.js     createMikserRouter, useMikserRoutes,
+//                     useMikserRoutesSync, generateMikserRoutes
 //   src/href.js       provideHrefIndex, useHref
 //   src/asset.js      provideAssetIndex, useAsset
 //
@@ -22,6 +23,11 @@
 
 export { createMikserPlugin, useMikserClient } from './src/plugin.js'
 export { useDocument, useDocuments }            from './src/documents.js'
-export { createMikserRouter, generateMikserRoutes } from './src/router.js'
+export {
+    createMikserRouter,
+    useMikserRoutes,
+    useMikserRoutesSync,
+    generateMikserRoutes,
+} from './src/router.js'
 export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
 export { provideAssetIndex, useAsset }          from './src/asset.js'
