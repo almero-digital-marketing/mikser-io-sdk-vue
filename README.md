@@ -68,7 +68,20 @@ createApp(App)
 
 The pattern is **augment, don't own**. You write the app you'd write anyway — your own routes, your own router setup, your own catch-all. Mikser slots its routes in alongside yours and keeps them current as content changes.
 
-> **Top-level `await` requires `build.target: 'es2022'` in `vite.config.js`.** Vite 5's default `'modules'` target is below the TLA cutoff and `vite build` errors out otherwise. All evergreen browsers (Chrome 89+, Firefox 89+, Safari 15+, Edge 89+) support es2022 natively. Alternatively, wrap the bootstrap in an `async function main() { … } main()` IIFE — no build-target change needed.
+> **Two small things to add when you reproduce this pattern in your own app:**
+>
+> **1. `build.target: 'es2022'` in `vite.config.js`** — top-level `await` is ES2022 syntax. Vite 5's default `'modules'` target is below the TLA cutoff and `vite build` errors out otherwise. Every evergreen browser (Chrome 89+, Firefox 89+, Safari 15+, Edge 89+) runs es2022 natively. Alternatively, wrap the bootstrap in an `async function main() { … } main()` IIFE — no build-target change needed.
+>
+> **2. A loading state in `index.html`** — `await seeded` blocks the mount for the ~100-500ms initial catalog round trip; without a shell the user sees a blank screen. Vue's `.mount()` replaces `#app`'s inner content, so this disappears the moment routes are seeded:
+>
+> ```html
+> <body>
+>     <div id="app"><div class="loading">Loading…</div></div>
+>     <script type="module" src="/src/main.js"></script>
+> </body>
+> ```
+>
+> Both example apps ship with both pieces — see [`examples/pure-spa`](./examples/pure-spa) and [`examples/hybrid-ssg`](./examples/hybrid-ssg).
 
 ### What `entityId` is
 
