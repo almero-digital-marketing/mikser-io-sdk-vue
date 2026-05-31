@@ -270,3 +270,81 @@ export interface UseAssetResult {
 }
 
 export declare function useAsset(): UseAssetResult
+
+// ---------------------------------------------------------------------------
+// vector() — semantic search (pairs with mikser-io-sdk-vector)
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape the vector client must conform to. Match the one returned by
+ * `createClient(...)` from `mikser-io-sdk-vector` — the framework SDK
+ * doesn't import that package directly (it's an optional runtime
+ * dependency), it just expects this surface.
+ */
+export interface MikserVectorClient {
+    vector(storeName: string, options?: { token?: string }): {
+        findSimilar(q: string, options?: { limit?: number }): Promise<{
+            results: Array<{ id: string; distance: number; data?: any }>
+        }>
+    }
+}
+
+export interface MikserVectorPluginOptions {
+    client: MikserVectorClient
+}
+
+/**
+ * Vue plugin — provides the vector client app-wide via inject(). Pair
+ * with mikser-io-sdk-vector to construct the client.
+ */
+export declare function createMikserVectorPlugin(
+    options: MikserVectorPluginOptions,
+): Plugin
+
+/**
+ * Inject the configured vector client. Useful for ad-hoc calls; the
+ * useSimilar composable injects it for you.
+ */
+export declare function useMikserVectorClient(): MikserVectorClient
+
+export interface UseSimilarOptions {
+    /** Override the injected client. Rare — useful in tests. */
+    client?: MikserVectorClient
+    /** Max hits per request. Default 5. */
+    limit?: number
+    /** ms to wait after the last query change before firing. Default 200. 0 = fire immediately. */
+    debounce?: number
+    /** Skip the request when the trimmed query is shorter than this. Default 1. */
+    minLength?: number
+}
+
+export interface SimilarHit<T = unknown> {
+    id: string
+    distance: number
+    data?: T
+}
+
+export interface UseSimilarResult<T = unknown> {
+    /** Latest results. Empty array before the first response. */
+    results: Ref<SimilarHit<T>[]>
+    /** True while a request is in flight (not while debouncing). */
+    loading: Ref<boolean>
+    /** Populated when findSimilar() rejects. */
+    error:   Ref<unknown>
+    /** Force a fresh request against the current query. */
+    refresh: () => void
+}
+
+/**
+ * Live semantic search composable. Re-fires the search when `query`
+ * changes, debounced. Stale results from races are discarded — only
+ * the most recently-issued query's response can update `results`.
+ *
+ * `query` accepts a string, a Ref, or a getter — same convention as
+ * useDocument's `id` parameter.
+ */
+export declare function useSimilar<T = unknown>(
+    storeName: string,
+    query: MaybeRef<string> | (() => string),
+    options?: UseSimilarOptions,
+): UseSimilarResult<T>

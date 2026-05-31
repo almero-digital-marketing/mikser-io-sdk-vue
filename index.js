@@ -10,8 +10,11 @@
 //   src/plugin.js     createMikserPlugin, useMikserClient
 //   src/documents.js  useDocument, useDocuments
 //   src/router.js     useMikserRoutes, generateMikserRoutes
-//   src/href.js       provideHrefIndex, useHref
+//   src/href.js       provideHrefIndex, useHref, useAlternates
 //   src/asset.js      provideAssetIndex, useAsset
+//   src/vector.js     createMikserVectorPlugin, useMikserVectorClient,
+//                     useSimilar (semantic search; pairs with
+//                     mikser-io-sdk-vector)
 //
 // Each submodule can also be imported directly:
 //
@@ -28,3 +31,8 @@ export {
 } from './src/router.js'
 export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
 export { provideAssetIndex, useAsset }          from './src/asset.js'
+export {
+    createMikserVectorPlugin,
+    useMikserVectorClient,
+    useSimilar,
+} from './src/vector.js'

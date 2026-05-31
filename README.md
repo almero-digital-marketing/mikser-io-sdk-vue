@@ -495,6 +495,8 @@ Each export does one job. Mikser augments your app — you own the router; the S
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
 | `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
 | `provideAssetIndex` / `useAsset`   | Asset / image reference resolution — `/assets/hero.jpg` → real URL + dims  |
+| `createMikserVectorPlugin` / `useMikserVectorClient` | Bridges `mikser-io-sdk-vector` into Vue's provide/inject       |
+| `useSimilar`                       | Live semantic search with debounce + stale-result discard                   |
 
 ## Composables — document data
 
@@ -952,6 +954,64 @@ const { asset } = useAsset()
 const { url, width, height, meta } = asset('/assets/hero.jpg') ?? {}
 ```
 
+## Semantic search — `createMikserVectorPlugin` + `useSimilar`
+
+Bridges the `mikser-io-sdk-vector` client into Vue. Same provide/inject shape as the documents plugin; the search composable handles debounce + stale-result discard so a fast-typing user doesn't see older results clobber newer ones.
+
+```js
+// main.js — install the vector plugin alongside the documents one
+import { createClient as createVectorClient } from 'mikser-io-sdk-vector'
+import { createMikserVectorPlugin } from 'mikser-io-sdk-vue'
+
+const similar = createVectorClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+app.use(createMikserVectorPlugin({ client: similar }))
+```
+
+```vue
+<!-- components/SearchBox.vue -->
+<script setup>
+import { ref } from 'vue'
+import { useSimilar } from 'mikser-io-sdk-vue'
+
+const q = ref('')
+const { results, loading } = useSimilar('documents', () => q.value, {
+    limit:     10,
+    debounce:  200,    // ms after the last keystroke before firing
+    minLength: 2,      // skip the request below this length
+})
+</script>
+
+<template>
+    <input v-model="q" placeholder="Search…" />
+    <p v-if="loading">Searching…</p>
+    <ul>
+        <li v-for="hit in results" :key="hit.id">
+            <a :href="hit.id">{{ hit.data?.title }}</a>
+            <small>distance: {{ hit.distance.toFixed(3) }}</small>
+        </li>
+    </ul>
+</template>
+```
+
+- **`results` is reactive**; updates push to `<v-for>` in place.
+- **`loading`** is true only while a request is in flight, not during the debounce wait. Use it to show a spinner, not a placeholder.
+- **`error`** is populated when `findSimilar()` rejects. Branch on it to render a fallback.
+- **`refresh()`** forces a fresh request against the current query. Use after the vector store has been updated server-side.
+
+`mikser-io-sdk-vector` is an **optional** runtime dependency — the framework SDK doesn't import it. Install it only if you use semantic search:
+
+```bash
+npm install mikser-io-sdk-vector
+```
+
+The hit shape is generic on the embedded payload — type the `data` field for typed templates:
+
+```ts
+type ProductHit = { title: string; sku: string; price: number }
+const { results } = useSimilar<ProductHit>('products', () => q.value)
+//        ↑ results.value[0].data is now ProductHit
+```
+
 ## What this library doesn't include
 
 Deliberately. Each of these is a per-project decision:
@@ -960,7 +1020,6 @@ Deliberately. Each of these is a per-project decision:
 - **A markdown renderer.** Use `markdown-it`, `marked`, or whatever your project standardizes on. If you render Markdown server-side via the `render-markdown` plugin, `document.content` is already HTML.
 - **A layout switcher.** Some teams use `<router-view :class="$route.meta.layout">`; some use named layouts; some pick via `<component :is="...">`. Stay neutral.
 - **Auth / token UI.** Tokens are configuration — `createClient({ token })` handles them.
-- **Vector / semantic search.** Lives in `mikser-io-sdk-vector` (and eventually a Vue companion if it earns its keep).
 
 ## TypeScript
 
