@@ -15,17 +15,29 @@ export default {
         'front-matter',
         'yaml',
         'layouts',
+        'plugin-schemas',
         'render-hbs',
         'render-markdown',
         'api',
     ],
 
     layouts: {
-        // One generic page.html.hbs catches every doc regardless of
+        // One generic page.html.hbs catches every document regardless of
         // meta.layout. The Vue apps do their own per-layout dispatch
         // via the meta.layout field; mikser's rendering is only
         // consumed by scenario C (islands).
         autoLayouts: true,
+    },
+
+    schemas: {
+        // 'warn' (the default) is deliberately kept here so the demo
+        // surfaces mistyped front-matter as a server log line without
+        // failing the build. Flip to 'fail' for CI strictness.
+        onError: 'warn',
+        // The generated declaration file is consumed by the Vue
+        // example projects — see e.g. hybrid-ssg/src/router.js for how
+        // it's imported.
+        typesFile: 'entities.d.ts',
     },
 
     api: {
