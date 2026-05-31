@@ -18,7 +18,7 @@
  *           path: doc.meta.route,
  *           name: doc.id,
  *           component: () => import('./views/DocumentPage.vue'),
- *           props: route => ({ docId: doc.id, params: route.params }),
+ *           props: route => ({ entityId: doc.id, params: route.params }),
  *           meta: { layout: doc.meta?.layout },
  *       }),
  *       staticRoutes: [...],

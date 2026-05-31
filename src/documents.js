@@ -11,7 +11,7 @@ import { useMikserClient } from './plugin.js'
  * `id` accepts a string OR a Ref OR a getter — when it changes, the
  * subscription resubscribes against the new id automatically.
  *
- *   const { document, loading, error, refresh } = useDocument(() => props.docId)
+ *   const { document, loading, error, refresh } = useDocument(() => props.entityId)
  */
 export function useDocument(id, { client: clientArg } = {}) {
     const client = clientArg ?? useMikserClient()

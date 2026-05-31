@@ -46,7 +46,7 @@ const router = await createMikserRouter({
         path:      doc.meta.route,
         name:      doc.id,
         component: views[doc.meta.layout] ?? views.page,  // dispatch
-        props:     route => ({ docId: doc.id, params: route.params }),
+        props:     route => ({ entityId: doc.id, params: route.params }),
         meta:      { layout: doc.meta?.layout, title: doc.meta?.title },
     }),
     notFoundComponent: () => import('./views/NotFound.vue'),
@@ -59,21 +59,21 @@ createApp(App)
     .mount('#app')
 ```
 
-### What `docId` is
+### What `entityId` is
 
-`docId` is the mikser entity id — every document, file, and asset in the catalog has one. For documents it's the **source file path** under the working folder, e.g. `/documents/en/articles/welcome.md`. It's stable across content edits (only a rename changes it) and globally unique within a mikser instance.
+`entityId` is the mikser entity id — every document, file, and asset in the catalog has one. For documents it's the **source file path** under the working folder, e.g. `/documents/en/articles/welcome.md`. It's stable across content edits (only a rename changes it) and globally unique within a mikser instance.
 
 The flow through the Quick Start above:
 
 ```
 mapRoute receives a doc      → its doc.id is '/documents/en/articles/welcome.md'
        passes doc.id as prop → ArticleView gets <ArticleView :doc-id="…welcome.md" />
-       useDocument(docId)    → opens a live subscription for { id: '…welcome.md' }
+       useDocument(entityId)    → opens a live subscription for { id: '…welcome.md' }
        SDK filters by id     → server returns just that one document
        editor edits the file → SSE event flows back → component re-renders
 ```
 
-`docId` itself is just the prop name — call it `id`, `entityId`, or anything else; the only contract that matters is that it's the value of `doc.id`. Using `docId` consistently in this library's examples makes it instantly recognisable when someone scans your codebase.
+The `entityId` prop name follows mikser's vocabulary — documents, files, assets are all *entities*, and `entityId` is what the catalog calls their identifier. The SDK doesn't reserve the name; you can call the prop anything, but staying with `entityId` makes a Vue codebase recognisable to anyone who already knows mikser's terms.
 
 Documents declare their layout in front-matter — the router uses it to pick the view.
 
@@ -118,8 +118,8 @@ Three documents, three different layouts → three structurally different views.
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
-const props = defineProps({ docId: String })
-const { document: article, loading } = useDocument(() => props.docId)
+const props = defineProps({ entityId: String })
+const { document: article, loading } = useDocument(() => props.entityId)
 </script>
 
 <template>
@@ -147,8 +147,8 @@ const { document: article, loading } = useDocument(() => props.docId)
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
-const props = defineProps({ docId: String })
-const { document: product } = useDocument(() => props.docId)
+const props = defineProps({ entityId: String })
+const { document: product } = useDocument(() => props.entityId)
 
 function addToCart() { /* hand off to the cart store */ }
 </script>
@@ -180,8 +180,8 @@ function addToCart() { /* hand off to the cart store */ }
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
-const props = defineProps({ docId: String })
-const { document: page } = useDocument(() => props.docId)
+const props = defineProps({ entityId: String })
+const { document: page } = useDocument(() => props.entityId)
 </script>
 
 <template>
@@ -267,7 +267,7 @@ const router = await createMikserRouter({
         path:      doc.meta.route,
         name:      doc.id,
         component: () => import('./views/DocumentPage.vue'),
-        props:     route => ({ docId: doc.id, params: route.params }),
+        props:     route => ({ entityId: doc.id, params: route.params }),
         meta:      { layout: doc.meta?.layout },
     }),
     history:           createWebHistory(),
@@ -452,7 +452,7 @@ Seven exports. Each does one job.
 ### `useDocument(id, options?)`
 
 ```js
-const { document, loading, error, refresh } = useDocument(() => props.docId)
+const { document, loading, error, refresh } = useDocument(() => props.entityId)
 ```
 
 - `id` can be a string, a Ref, or a getter. When it changes, the subscription re-subscribes for the new id.
