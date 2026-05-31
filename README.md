@@ -68,6 +68,8 @@ createApp(App)
 
 The pattern is **augment, don't own**. You write the app you'd write anyway — your own routes, your own router setup, your own catch-all. Mikser slots its routes in alongside yours and keeps them current as content changes.
 
+> **Top-level `await` requires `build.target: 'es2022'` in `vite.config.js`.** Vite 5's default `'modules'` target is below the TLA cutoff and `vite build` errors out otherwise. All evergreen browsers (Chrome 89+, Firefox 89+, Safari 15+, Edge 89+) support es2022 natively. Alternatively, wrap the bootstrap in an `async function main() { … } main()` IIFE — no build-target change needed.
+
 ### What `entityId` is
 
 `entityId` is the mikser entity id — every document, file, and asset in the catalog has one. For documents it's the **source file path** under the working folder, e.g. `/documents/en/articles/welcome.md`. It's stable across content edits (only a rename changes it) and globally unique within a mikser instance.
