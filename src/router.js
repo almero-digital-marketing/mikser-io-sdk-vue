@@ -97,8 +97,10 @@ export async function createMikserRouter({
 }
 
 /**
- * Build-time helper. Calls client.list() once and returns plain route
- * definitions for use with Vite SSG / Nuxt / any static-build tooling.
+ * Build-time helper. Enumerates every published catalog entity with a
+ * matching filter and applies the mapRoute callback. Returns plain
+ * route definitions for use with Vite SSG / Nuxt / any static-build
+ * tooling.
  *
  *   // build/routes.mjs
  *   const routes = await generateMikserRoutes({
@@ -106,6 +108,9 @@ export async function createMikserRouter({
  *       mapRoute: document => ({ path: document.meta.route, name: document.id, ... }),
  *   })
  *   await writeFile('./src/generated/routes.json', JSON.stringify(routes))
+ *
+ * Auto-paginates via sdk-api's listAll() under the hood — no manual
+ * limit, no silent truncation on large catalogs.
  */
 export async function generateMikserRoutes({
     client,
@@ -115,10 +120,6 @@ export async function generateMikserRoutes({
     if (!client)   throw new Error('generateMikserRoutes: { client } is required')
     if (!mapRoute) throw new Error('generateMikserRoutes: { mapRoute } is required')
 
-    const { items } = await client.list({
-        filter,
-        fields: ['id', 'meta'],
-        limit:  10_000,
-    })
+    const items = await client.listAll({ filter, fields: ['id', 'meta'] })
     return items.map(mapRoute)
 }
