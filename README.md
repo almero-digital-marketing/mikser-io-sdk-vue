@@ -460,7 +460,6 @@ const { documents } = useDocuments(query)
 | `useDocument()` / `useDocuments()` | Components in any scenario | Plain Node scripts (use the SDK directly) |
 | `live()` underneath both | Always — they wrap it | — |
 | `useMikserRoutesSync` | Scenarios A or B (editor app) — your router, mikser slots in | Scenario C (no router) |
-| `useMikserRoutes` | When you want catalog routes as data (admin pickers, sitemaps) | Just feeding a router — use `useMikserRoutesSync` instead |
 | `generateMikserRoutes` | Scenario B (build step) | Scenarios A or C |
 | `useHref` + `useAsset` | Any scenario with Vue components | Mikser-rendered HTML (use the render-href plugin server-side instead) |
 
@@ -476,8 +475,7 @@ Each export does one job. Mikser augments your app — you own the router; the S
 | `useMikserClient`       | Injection accessor for the raw client (rare; the other composables use it)  |
 | `useDocument`           | Reactive single-document composable with live updates                       |
 | `useDocuments`          | Reactive list composable with live updates                                  |
-| `useMikserRoutesSync`   | **The common router shape.** Live diff (addRoute / removeRoute) against an existing router. Returns `{ dispose, seeded }`. |
-| `useMikserRoutes`       | Live `Ref<RouteRecordRaw[]>` — catalog routes as data, when you want to compose into something other than a router |
+| `useMikserRoutesSync`   | Live diff (addRoute / removeRoute) against your existing router. Returns `{ dispose, seeded }`. |
 | `generateMikserRoutes`  | Build-time helper — outputs a routes array for static-build pipelines       |
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
 | `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
@@ -571,37 +569,6 @@ createApp(App)
 - Avoid name collisions between your hand-coded routes and catalog-driven ones; `addRoute` overwrites on duplicate names.
 - `seeded` resolves the first time the initial catalog list has landed. Await it before mounting so first-paint navigation hits a registered route instead of falling through to your NotFound and re-navigating once routes appear.
 - `dispose()` stops the live subscription. Idempotent. Also runs automatically on the surrounding effect scope's teardown.
-
-### `useMikserRoutes(options)`
-
-Returns a `Ref<RouteRecordRaw[]>` that stays in sync with the catalog. The consumer reads `.value` and composes it into their own route list — no router instance owned by the SDK.
-
-```js
-import { computed } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
-import { useMikserRoutes } from 'mikser-io-sdk-vue'
-
-const mikserRoutes = useMikserRoutes({
-    mapRoute: document => ({
-        path: document.meta.route,
-        name: document.id,
-        component: () => import('./views/DocumentPage.vue'),
-        props: { entityId: document.id },
-    }),
-})
-
-// Compose with your own — Vue Router doesn't watch its routes after
-// construction, so this shape works for the initial seed + a watch
-// that calls addRoute / removeRoute as mikserRoutes.value changes.
-// For the live-diff version of that wiring, see useMikserRoutesSync
-// below — it does it for you.
-const allRoutes = computed(() => [
-    { path: '/login', name: 'login', component: () => import('./views/Login.vue') },
-    ...mikserRoutes.value,
-])
-```
-
-Use this when you want catalog routes as **data** — to feed a static `createRouter()` call at boot, to project into a custom router, or to drive a UI that lists or filters routes (admin pickers, sitemaps, debug panels).
 
 ### `generateMikserRoutes(options)`
 

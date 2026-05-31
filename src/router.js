@@ -1,82 +1,25 @@
-// Router integration — three shapes. Mikser augments your app's router;
+// Router integration — two shapes. Mikser augments your app's router;
 // it doesn't own it.
 //
 //   useMikserRoutesSync(router, opts) — applies catalog routes to an
 //                                      EXISTING vue-router instance via
-//                                      addRoute / removeRoute. The
-//                                      common case: your app constructs
-//                                      its own router with hand-coded
-//                                      routes; mikser slots in alongside.
-//                                      Returns { dispose, seeded }.
-//
-//   useMikserRoutes(opts)            — returns a Ref<RouteRecordRaw[]>
-//                                      that stays in sync. Right when
-//                                      you want catalog routes as data —
-//                                      to feed a single createRouter()
-//                                      call at boot, or to project into
-//                                      other UI (admin pickers, sitemaps,
-//                                      debug panels).
+//                                      addRoute / removeRoute. Your app
+//                                      constructs its own router with
+//                                      hand-coded routes; mikser slots in
+//                                      alongside. Returns { dispose, seeded }.
 //
 //   generateMikserRoutes(opts)        — one-shot Promise<RouteRecordRaw[]>
 //                                      for build-time / SSG. No
 //                                      subscription, no router involvement.
-import { shallowRef, getCurrentScope, onScopeDispose } from 'vue'
+//
+// For anything else (admin pickers listing documents, sitemap UIs,
+// debug panels), use useDocuments — it gives you the live document
+// records directly, which carry strictly more information than a
+// post-mapRoute RouteRecordRaw array.
+import { getCurrentScope, onScopeDispose } from 'vue'
 import { useMikserClient } from './plugin.js'
 
 const DEFAULT_FILTER = { 'meta.published': true, 'meta.route': { $exists: true } }
-
-/**
- * Live reactive list of route records from the mikser catalog. Returns
- * a shallowRef<RouteRecordRaw[]> that re-assigns its `.value` whenever
- * a matching entity is created / updated / deleted server-side.
- *
- *   <script setup>
- *   import { createRouter, createWebHistory } from 'vue-router'
- *   import { useMikserRoutes } from 'mikser-io-sdk-vue'
- *
- *   const mikserRoutes = useMikserRoutes({
- *       mapRoute: document => ({
- *           path: document.meta.route,
- *           name: document.id,
- *           component: () => import('./views/DocumentPage.vue'),
- *           props: { entityId: document.id },
- *       }),
- *   })
- *
- *   // Compose with your own routes — read mikserRoutes.value in a
- *   // computed/watch, build your routes array, hand to createRouter().
- *   </script>
- *
- * For an existing router you'd rather not rebuild, see
- * `useMikserRoutesSync` — it applies the same data via addRoute /
- * removeRoute instead of asking the caller to wire the diff manually.
- *
- * Automatic teardown on component unmount (or standalone effectScope.stop()).
- */
-export function useMikserRoutes({
-    client: clientArg,
-    filter = DEFAULT_FILTER,
-    mapRoute,
-} = {}) {
-    if (!mapRoute) throw new Error('useMikserRoutes: { mapRoute } is required')
-    const client = clientArg ?? useMikserClient()
-
-    const routes = shallowRef([])
-
-    const dispose = client.live(
-        filter,
-        (documents) => {
-            routes.value = documents.map(mapRoute).filter(Boolean)
-        },
-        { fields: ['id', 'meta'] },
-    )
-
-    if (getCurrentScope()) {
-        onScopeDispose(() => dispose?.())
-    }
-
-    return routes
-}
 
 /**
  * Keep an existing vue-router instance in sync with the mikser catalog

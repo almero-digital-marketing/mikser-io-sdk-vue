@@ -78,32 +78,6 @@ export declare function useDocuments<T = unknown>(
 // Router integration
 // ---------------------------------------------------------------------------
 
-export interface UseMikserRoutesOptions {
-    /** Defaults to the injected client. */
-    client?: EntitiesClient
-    /**
-     * Which documents become routes. Default:
-     *   { 'meta.published': true, 'meta.route': { $exists: true } }
-     */
-    filter?: Filter
-    /** Maps a document into a Vue Router RouteRecordRaw. */
-    mapRoute: (document: any) => RouteRecordRaw | null | undefined
-}
-
-/**
- * Live reactive list of route records from the mikser catalog. Returns
- * a shallowRef that re-assigns whenever a matching entity is created,
- * updated, or deleted server-side. Use to compose mikser-driven routes
- * with your own routes — feed `.value` into your own createRouter()
- * call.
- *
- * For composing with an existing router instance, prefer
- * `useMikserRoutesSync` — it does the diff + addRoute/removeRoute for you.
- */
-export declare function useMikserRoutes(
-    options: UseMikserRoutesOptions,
-): Ref<RouteRecordRaw[]>
-
 export interface UseMikserRoutesSyncOptions {
     client?: EntitiesClient
     filter?: Filter
