@@ -78,7 +78,7 @@ export declare function useDocuments<T = unknown>(
 // Router integration
 // ---------------------------------------------------------------------------
 
-export interface UseMikserRoutesSyncOptions {
+export interface UseMikserRoutesOptions {
     client?: EntitiesClient
     filter?: Filter
     /**
@@ -89,7 +89,7 @@ export interface UseMikserRoutesSyncOptions {
     mapRoute: (document: any) => RouteRecordRaw | null | undefined
 }
 
-export interface UseMikserRoutesSyncResult {
+export interface UseMikserRoutesResult {
     /**
      * Stop the live subscription. Idempotent. Also runs automatically
      * on the surrounding effect scope's teardown.
@@ -110,10 +110,10 @@ export interface UseMikserRoutesSyncResult {
  * your own static / dynamic routes and want mikser to slot in alongside
  * them, without rebuilding the whole router.
  */
-export declare function useMikserRoutesSync(
+export declare function useMikserRoutes(
     router: Router,
-    options: UseMikserRoutesSyncOptions,
-): UseMikserRoutesSyncResult
+    options: UseMikserRoutesOptions,
+): UseMikserRoutesResult
 
 export interface GenerateMikserRoutesOptions {
     client: EntitiesClient

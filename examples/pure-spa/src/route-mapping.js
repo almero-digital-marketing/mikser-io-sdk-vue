@@ -1,5 +1,5 @@
 // Single source of truth for "what view does this document render through".
-// Used by main.js as the mapRoute callback handed to useMikserRoutesSync.
+// Used by main.js as the mapRoute callback handed to useMikserRoutes.
 //
 // Lazy-import each view so each ships as its own chunk and only loads
 // when the user actually visits a route of that layout.

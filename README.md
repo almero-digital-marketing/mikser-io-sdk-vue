@@ -14,14 +14,14 @@ npm install mikser-io-sdk-vue mikser-io-sdk-api vue vue-router
 
 ## Quick start
 
-**The app owns the router.** Mikser slots catalog-driven routes in alongside your hand-coded ones via `useMikserRoutesSync`. The `mapRoute` callback dispatches each document to the view that matches its `meta.layout` — different content types ship through different views (an article isn't a product isn't a landing page).
+**The app owns the router.** Mikser slots catalog-driven routes in alongside your hand-coded ones via `useMikserRoutes`. The `mapRoute` callback dispatches each document to the view that matches its `meta.layout` — different content types ship through different views (an article isn't a product isn't a landing page).
 
 ```js
 // main.js
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createClient } from 'mikser-io-sdk-api'
-import { createMikserPlugin, useMikserRoutesSync } from 'mikser-io-sdk-vue'
+import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
@@ -37,7 +37,7 @@ const views = {
 }
 
 // You construct the router. Hand-coded routes are first-class; mikser
-// joins them later via useMikserRoutesSync.
+// joins them later via useMikserRoutes.
 const router = createRouter({
     history: createWebHistory(),
     routes: [
@@ -48,7 +48,7 @@ const router = createRouter({
 
 // Plug mikser into the same router. seeded resolves when the initial
 // catalog list has landed and the matching addRoute calls have run.
-const { seeded } = useMikserRoutesSync(router, {
+const { seeded } = useMikserRoutes(router, {
     client: documents,
     mapRoute: document => ({
         path:      document.meta.route,
@@ -259,7 +259,7 @@ Three common shapes. Each makes a different trade between SEO, build complexity,
 > | Folder | What's in it |
 > |---|---|
 > | **[`examples/mikser-content`](./examples/mikser-content)** | **The shared content server** — a standalone mikser project that supplies the catalog to the three Vue apps below. Start it first. |
-> | **[`examples/pure-spa`](./examples/pure-spa)** (scenario A) | Vite + Vue + `useMikserRoutesSync` against your own router |
+> | **[`examples/pure-spa`](./examples/pure-spa)** (scenario A) | Vite + Vue + `useMikserRoutes` against your own router |
 > | **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** (scenario B) | Two Vite configs (public + editor), shared `route-mapping.js` |
 > | **[`examples/islands`](./examples/islands)** (scenario C) | Multi-entry Vite build, three Vue islands mounting onto mikser-rendered HTML |
 
@@ -267,14 +267,14 @@ Three common shapes. Each makes a different trade between SEO, build complexity,
 
 **When:** Editor UIs, admin dashboards, internal apps. SEO doesn't matter. You want the fastest dev loop and the lowest build complexity.
 
-**How it works:** No build-time route enumeration. The app constructs its own router, then wires `useMikserRoutesSync` against it to slot catalog routes in alongside the hand-coded ones. Editing a document → SSE event → addRoute / removeRoute → UI updates. No rebuild ever.
+**How it works:** No build-time route enumeration. The app constructs its own router, then wires `useMikserRoutes` against it to slot catalog routes in alongside the hand-coded ones. Editing a document → SSE event → addRoute / removeRoute → UI updates. No rebuild ever.
 
 ```js
 // main.js
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createClient } from 'mikser-io-sdk-api'
-import { createMikserPlugin, useMikserRoutesSync } from 'mikser-io-sdk-vue'
+import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
@@ -289,7 +289,7 @@ const router = createRouter({
 })
 
 // seeded resolves when the initial catalog list has landed.
-const { seeded } = useMikserRoutesSync(router, {
+const { seeded } = useMikserRoutes(router, {
     client:   documents,
     mapRoute: document => ({
         path:      document.meta.route,
@@ -357,13 +357,13 @@ export const router = createRouter({
 
 Then run **Vite SSG** or **vite-plugin-ssr** to pre-render each route's HTML. Each route's page calls `useDocument()` during SSR to fetch the content — produces a fully-rendered HTML file.
 
-**Editor app** — separate entry point, uses scenario A (`useMikserRoutesSync` + live composables). Mounted under `/admin/*` or on a different domain. Stays live always.
+**Editor app** — separate entry point, uses scenario A (`useMikserRoutes` + live composables). Mounted under `/admin/*` or on a different domain. Stays live always.
 
 ```
 project/
   src/
     public/main.js      ← SSG entry, uses generated routes
-    editor/main.js      ← SPA entry, uses createRouter + useMikserRoutesSync (live)
+    editor/main.js      ← SPA entry, uses createRouter + useMikserRoutes (live)
   build/
     generate-routes.mjs ← run before vite build
 ```
@@ -459,7 +459,7 @@ const { documents } = useDocuments(query)
 | `client.list()` directly | Build-time, SSR (no live updates needed) | Component that needs to react to changes |
 | `useDocument()` / `useDocuments()` | Components in any scenario | Plain Node scripts (use the SDK directly) |
 | `live()` underneath both | Always — they wrap it | — |
-| `useMikserRoutesSync` | Scenarios A or B (editor app) — your router, mikser slots in | Scenario C (no router) |
+| `useMikserRoutes` | Scenarios A or B (editor app) — your router, mikser slots in | Scenario C (no router) |
 | `generateMikserRoutes` | Scenario B (build step) | Scenarios A or C |
 | `useHref` + `useAsset` | Any scenario with Vue components | Mikser-rendered HTML (use the render-href plugin server-side instead) |
 
@@ -475,7 +475,7 @@ Each export does one job. Mikser augments your app — you own the router; the S
 | `useMikserClient`       | Injection accessor for the raw client (rare; the other composables use it)  |
 | `useDocument`           | Reactive single-document composable with live updates                       |
 | `useDocuments`          | Reactive list composable with live updates                                  |
-| `useMikserRoutesSync`   | Live diff (addRoute / removeRoute) against your existing router. Returns `{ dispose, seeded }`. |
+| `useMikserRoutes`   | Live diff (addRoute / removeRoute) against your existing router. Returns `{ dispose, seeded }`. |
 | `generateMikserRoutes`  | Build-time helper — outputs a routes array for static-build pipelines       |
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
 | `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
@@ -523,7 +523,7 @@ const { documents, loading, error, refresh } = useDocuments({
 
 Three helpers, all composition-oriented — **your app owns the router**, mikser slots in alongside.
 
-### `useMikserRoutesSync(router, options)`
+### `useMikserRoutes(router, options)`
 
 **The common case.** Wires a live diff loop against an **existing** vue-router instance: `addRoute` for catalog entries that appear, `removeRoute` for entries that disappear. Returns `{ dispose, seeded }`.
 
@@ -531,7 +531,7 @@ Three helpers, all composition-oriented — **your app owns the router**, mikser
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createClient } from 'mikser-io-sdk-api'
-import { createMikserPlugin, useMikserRoutesSync } from 'mikser-io-sdk-vue'
+import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
@@ -548,7 +548,7 @@ const router = createRouter({
 })
 
 // Plug mikser into the same router. Await seeded before mount.
-const { seeded } = useMikserRoutesSync(router, {
+const { seeded } = useMikserRoutes(router, {
     client: documents,
     mapRoute: document => ({
         path:      document.meta.route,

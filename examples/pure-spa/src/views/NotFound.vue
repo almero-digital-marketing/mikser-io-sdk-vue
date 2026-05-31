@@ -5,7 +5,7 @@ import { useMikserClient } from 'mikser-io-sdk-vue'
 
 // Smart 404: before showing "not found", check whether a document with
 // meta.route matching the current path has just landed in the catalog
-// (e.g. published seconds ago, after useMikserRoutesSync's initial
+// (e.g. published seconds ago, after useMikserRoutes's initial
 // seed but processed by the live() subscription too late to
 // re-navigate). If so, register the route and re-navigate. Otherwise
 // show the 404 message.

@@ -17,7 +17,7 @@ This is the typical agency project shape for marketing sites, blogs, documentati
 - **Shared `route-mapping.js`** — the same `views` table and `mapRoute` function used by the public build, the editor router, and the build script
 - **Two Vite configs** — `vite.config.js` (public, SSG via vite-ssg) and `vite.config.editor.js` (editor, SPA)
 - **Two entry points** — `index.html` (public) and `admin.html` (editor)
-- **Two main.js** — public uses `ViteSSG`; editor uses `createApp` + `createRouter` + `useMikserRoutesSync`
+- **Two main.js** — public uses `ViteSSG`; editor uses `createApp` + `createRouter` + `useMikserRoutes`
 - Same `useDocument` / `useDocuments` composables in both, identical view components
 
 ## Project structure
@@ -40,7 +40,7 @@ hybrid-ssg/
     │   ├── router.js            ← reads routes.json, rehydrates components
     │   └── App.vue
     ├── editor/
-    │   ├── main.js              ← createRouter + useMikserRoutesSync (live)
+    │   ├── main.js              ← createRouter + useMikserRoutes (live)
     │   ├── App.vue
     │   └── EditorHome.vue       ← recently-edited overview
     └── views/                   ← SHARED views (article/product/landing/page)
@@ -61,7 +61,7 @@ This is the load-bearing file. One function (`mapRoute`) drives three different 
 |---|---|---|
 | `build/generate-routes.mjs` | Build time, before public build | Calls `generateMikserRoutes({ mapRoute })` → writes routes.json |
 | `src/public/router.js` | Public runtime, post-build | Reads routes.json, rehydrates the component for each route via the views table |
-| `src/editor/main.js` | Editor runtime | Passes to `useMikserRoutesSync(router, { mapRoute })` for live route sync against the editor's own router |
+| `src/editor/main.js` | Editor runtime | Passes to `useMikserRoutes(router, { mapRoute })` for live route sync against the editor's own router |
 
 Change a dispatch rule (e.g. add `meta.layout: 'changelog'` → `ChangelogView`); all three consumers update on the next build/restart.
 

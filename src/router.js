@@ -1,7 +1,7 @@
 // Router integration — two shapes. Mikser augments your app's router;
 // it doesn't own it.
 //
-//   useMikserRoutesSync(router, opts) — applies catalog routes to an
+//   useMikserRoutes(router, opts) — applies catalog routes to an
 //                                      EXISTING vue-router instance via
 //                                      addRoute / removeRoute. Your app
 //                                      constructs its own router with
@@ -40,7 +40,7 @@ const DEFAULT_FILTER = { 'meta.published': true, 'meta.route': { $exists: true }
  *   // Slot mikser routes alongside the hand-coded ones. mapRoute MUST
  *   // return routes with a unique `name` — addRoute / removeRoute use
  *   // it as the diff key.
- *   useMikserRoutesSync(router, {
+ *   const { seeded } = useMikserRoutes(router, {
  *       mapRoute: document => ({
  *           path:      document.meta.route,
  *           name:      document.id,        // required for diff tracking
@@ -48,9 +48,13 @@ const DEFAULT_FILTER = { 'meta.published': true, 'meta.route': { $exists: true }
  *           props:     { entityId: document.id },
  *       }),
  *   })
+ *   await seeded   // first-paint nav hits a registered route
  *
- * Returns a dispose function. Also auto-disposes on the surrounding
- * effect scope's teardown (component unmount).
+ * Returns `{ dispose, seeded }`:
+ *  - `dispose()` stops the live subscription. Idempotent. Also runs
+ *    automatically on the surrounding effect scope's teardown.
+ *  - `seeded` resolves the first time the initial catalog list has
+ *    landed and routes have been registered.
  *
  * Notes:
  *  - Routes returned without a `name` are silently skipped — they
@@ -60,13 +64,13 @@ const DEFAULT_FILTER = { 'meta.published': true, 'meta.route': { $exists: true }
  *    it hasn't tracked yet, so coexisting static routes with the same
  *    name as catalog entities is a name collision the caller must avoid.
  */
-export function useMikserRoutesSync(router, {
+export function useMikserRoutes(router, {
     client: clientArg,
     filter = DEFAULT_FILTER,
     mapRoute,
 } = {}) {
-    if (!router)   throw new Error('useMikserRoutesSync: router is required')
-    if (!mapRoute) throw new Error('useMikserRoutesSync: { mapRoute } is required')
+    if (!router)   throw new Error('useMikserRoutes: router is required')
+    if (!mapRoute) throw new Error('useMikserRoutes: { mapRoute } is required')
     const client = clientArg ?? useMikserClient()
 
     const tracked = new Set()

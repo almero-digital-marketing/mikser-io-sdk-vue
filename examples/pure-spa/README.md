@@ -11,8 +11,8 @@ The simplest setup. The entire app fetches content at runtime and stays live as 
 
 ## What it shows
 
-- **The app owns the router.** `createRouter()` is constructed in `main.js` with hand-coded static routes (home, article index, NotFound). mikser is plugged in alongside via `useMikserRoutesSync` — it doesn't own routing, it augments it.
-- **`useMikserRoutesSync(router, { mapRoute })`** keeps catalog-driven routes in sync via `addRoute` / `removeRoute`. Returns `{ dispose, seeded }`; the example awaits `seeded` before mounting so the first navigation hits a registered route.
+- **The app owns the router.** `createRouter()` is constructed in `main.js` with hand-coded static routes (home, article index, NotFound). mikser is plugged in alongside via `useMikserRoutes` — it doesn't own routing, it augments it.
+- **`useMikserRoutes(router, { mapRoute })`** keeps catalog-driven routes in sync via `addRoute` / `removeRoute`. Returns `{ dispose, seeded }`; the example awaits `seeded` before mounting so the first navigation hits a registered route.
 - **Component dispatch by `meta.layout`** in `src/route-mapping.js`
 - Three structurally different content views — `ArticleView`, `ProductView`, `LandingView` — plus a `PageView` fallback
 - `useDocuments` powering two collection contexts — the navigation menu and the article index
@@ -27,7 +27,7 @@ pure-spa/
 ├── vite.config.js
 ├── package.json
 └── src/
-    ├── main.js                ← createApp + createRouter + useMikserRoutesSync + mount
+    ├── main.js                ← createApp + createRouter + useMikserRoutes + mount
     ├── App.vue
     ├── route-mapping.js       ← the views table + mapRoute callback (one source of truth)
     ├── components/
