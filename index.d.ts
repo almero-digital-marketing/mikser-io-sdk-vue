@@ -161,6 +161,12 @@ export interface UseHrefResult {
      * stay visible instead of becoming undefined).
      */
     href: (ref: string, lang?: string) => string
+    /**
+     * Reverse lookup — given a deployed URL, return the logical
+     * reference it belongs to (or null). Used internally by
+     * useAlternates(); exposed here for advanced cases.
+     */
+    refFor: (url: string | null | undefined) => string | null
     /** Direct access to the underlying index — for advanced cases. */
     index: Ref<HrefIndex>
 }
@@ -172,6 +178,52 @@ export interface UseHrefResult {
 export declare function useHref(
     defaultLangRef?: MaybeRef<string>,
 ): UseHrefResult
+
+export interface Alternate {
+    /** Language code — 'en', 'fr', 'bg', etc. */
+    lang: string
+    /** Deployed URL for this alternate. */
+    url: string
+}
+
+export interface CurrentRoute {
+    /** Language of the current route, or null if no document matched. */
+    lang: string | null
+    /** The URL we were given to resolve. */
+    url: string
+    /** The logical reference (meta.href) for the matched document. */
+    ref: string
+}
+
+export interface UseAlternatesOptions {
+    /**
+     * The URL to find alternates for. Required.
+     * Typically `() => useRoute().path` when using vue-router.
+     */
+    route: MaybeRef<string> | (() => string | null | undefined)
+    /**
+     * Optional list of languages to include in `alternates`. When
+     * provided, every language in the list appears (falling back via
+     * href() when a translation doesn't exist) — right for language
+     * switchers. When omitted, only languages that actually have a
+     * translation appear — right for hreflang tags.
+     */
+    languages?: MaybeRef<string[]> | (() => string[])
+}
+
+export interface UseAlternatesResult {
+    /** The list of alternates, excluding the current page's own language. */
+    alternates: Ref<Alternate[]>
+    /** The matched current route, or null if no document corresponded to it. */
+    current: Ref<CurrentRoute | null>
+}
+
+/**
+ * Alternate-language URLs for a given route. Powers language
+ * switchers and SEO hreflang tags. The composable doesn't depend on
+ * vue-router — pass the route path as a string, ref, or getter.
+ */
+export declare function useAlternates(options: UseAlternatesOptions): UseAlternatesResult
 
 // ---------------------------------------------------------------------------
 // asset() — asset / image reference resolution

@@ -23,5 +23,5 @@
 export { createMikserPlugin, useMikserClient } from './src/plugin.js'
 export { useDocument, useDocuments }            from './src/documents.js'
 export { createMikserRouter, generateMikserRoutes } from './src/router.js'
-export { provideHrefIndex, useHref }            from './src/href.js'
+export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
 export { provideAssetIndex, useAsset }          from './src/asset.js'

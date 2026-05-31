@@ -462,6 +462,7 @@ Seven exports. Each does one job.
 | `createMikserRouter`    | Async factory — builds a Vue Router with content routes from mikser         |
 | `generateMikserRoutes`  | Build-time helper — outputs a routes array for static-build pipelines       |
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
+| `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
 | `provideAssetIndex` / `useAsset`   | Asset / image reference resolution — `/assets/hero.jpg` → real URL + dims  |
 
 ## Composables — document data
@@ -648,49 +649,37 @@ When the user toggles `locale.value`, every `:to` binding re-evaluates. No `watc
 
 #### Language switcher — link to the current page in every other language
 
-The killer use case. Take the current route, find its logical `href`, then resolve to every other language. This is the *one* place where you go from a URL back to a reference, which is why the index also exposes the raw data.
+The killer use case. Take the current route, find its logical `href`, then resolve to every other language. The reverse lookup + multi-language fan-out is built into the SDK as `useAlternates()` — no manual index traversal needed.
 
 ```vue
 <!-- components/LanguageSwitcher.vue -->
 <script setup>
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useHref } from 'mikser-io-sdk-vue'
+import { useAlternates } from 'mikser-io-sdk-vue'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const { locale, availableLocales } = useI18n()
-const { href, index } = useHref(locale)
 
-// Find the logical href for the current URL: reverse-lookup in the index.
-const currentRef = computed(() => {
-    for (const [ref, byLang] of Object.entries(index.value)) {
-        if (Object.values(byLang).includes(route.path)) return ref
-    }
-    return null
+// Explicit language list — show every locale the app supports, even
+// for pages where a translation doesn't exist yet (the SDK falls back
+// via href()'s resolution chain). Right shape for a switcher.
+const { alternates } = useAlternates({
+    route:     () => route.path,
+    languages: availableLocales,
 })
-
-// For each available language, resolve the same logical ref.
-const alternates = computed(() =>
-    currentRef.value
-        ? availableLocales.map(lang => ({
-            lang,
-            to:    href(currentRef.value, lang),
-            label: lang.toUpperCase(),
-          }))
-        : [],
-)
 </script>
 
 <template>
     <ul class="lang-switcher">
-        <li v-for="alt in alternates" :key="alt.lang"
-            :class="{ active: alt.lang === locale }">
-            <router-link :to="alt.to">{{ alt.label }}</router-link>
+        <li v-for="alt in alternates" :key="alt.lang">
+            <router-link :to="alt.url">{{ alt.lang.toUpperCase() }}</router-link>
         </li>
     </ul>
 </template>
 ```
+
+The `alternates` ref is reactive on `route.path` — navigate to a different page and the list re-resolves automatically. It already excludes the current page's own language (that lives on `current` from the same composable if you want to include it).
 
 Now a visitor on `/en/about` clicking "FR" lands on `/fr/a-propos` — the *translation*, not just a language switcher that takes them back to the home page (which is what most i18n routing libraries do by default).
 
@@ -799,25 +788,16 @@ For SEO-critical multilingual sites you'll want `<link rel="alternate" hreflang=
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
-import { useHref } from 'mikser-io-sdk-vue'
+import { useAlternates } from 'mikser-io-sdk-vue'
 
 const route = useRoute()
-const { index } = useHref()
 
-const alternates = computed(() => {
-    // Find the logical ref for the current URL
-    let currentRef = null
-    for (const [ref, byLang] of Object.entries(index.value)) {
-        if (Object.values(byLang).includes(route.path)) { currentRef = ref; break }
-    }
-    if (!currentRef) return []
-
-    const entries = index.value[currentRef]
-    return Object.entries(entries).filter(([lang]) => lang !== 'default')
-})
+// No `languages` arg — return only translations that actually exist.
+// Right shape for hreflang: don't advertise pages we don't have.
+const { alternates } = useAlternates({ route: () => route.path })
 
 useHead({
-    link: computed(() => alternates.value.map(([lang, url]) => ({
+    link: computed(() => alternates.value.map(({ lang, url }) => ({
         rel:      'alternate',
         hreflang: lang,
         href:     url,
@@ -826,7 +806,7 @@ useHead({
 </script>
 ```
 
-Now every page automatically advertises its translations to search engines, sourced from the same catalog index that powers the navigation. One index, two consumers.
+Same composable, different shape of the answer — explicit `languages` for switchers (fall back when a translation doesn't exist), no `languages` for SEO (only advertise translations that exist). One catalog, two consumers, no manual index traversal.
 
 ### How the index gets built
 
