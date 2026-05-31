@@ -14,6 +14,8 @@ npm install mikser-io-sdk-vue mikser-io-sdk-api vue vue-router
 
 ## Quick start
 
+**main.js** — the `mapRoute` callback dispatches each document to the right view based on `meta.layout`. There's no one-size-fits-all "DocumentPage" — articles render through `ArticleView`, marketing pages through `PageView`, products through `ProductView`. That dispatch is the central job of `mapRoute`.
+
 ```js
 // main.js
 import { createApp } from 'vue'
@@ -25,14 +27,23 @@ import App from './App.vue'
 const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
+// One Vue view per content layout. Lazy-imported so each view ships
+// in its own chunk and only loads when its route is visited.
+const views = {
+    article: () => import('./views/ArticleView.vue'),
+    page:    () => import('./views/PageView.vue'),
+    product: () => import('./views/ProductView.vue'),
+    index:   () => import('./views/ArticleIndex.vue'),    // collection listing
+}
+
 const router = await createMikserRouter({
     client: docs,
     mapRoute: doc => ({
-        path: doc.meta.route,
-        name: doc.id,
-        component: () => import('./views/DocumentPage.vue'),
-        props: route => ({ docId: doc.id, params: route.params }),
-        meta: { layout: doc.meta?.layout, title: doc.meta?.title },
+        path:      doc.meta.route,
+        name:      doc.id,
+        component: views[doc.meta.layout] ?? views.page,  // dispatch + fallback
+        props:     route => ({ docId: doc.id, params: route.params }),
+        meta:      { layout: doc.meta?.layout, title: doc.meta?.title },
     }),
     notFoundComponent: () => import('./views/NotFound.vue'),
     history: createWebHistory(),
@@ -44,16 +55,33 @@ createApp(App)
     .mount('#app')
 ```
 
-An article index page that lists posts as they're published, and a detail page that re-renders when an editor saves changes. Both live, both backed by mikser.
+A document's front-matter just declares its layout:
+
+```yaml
+# documents/en/articles/welcome.md
+---
+layout: article
+title:  Welcome
+date:   2026-05-01
+route:  /en/articles/welcome
+published: true
+collection: articles
+---
+
+Welcome to the site.
+```
+
+→ router serves it through `ArticleView.vue`.
+
+**ArticleIndex.vue** — a collection listing using `useDocuments`. Lists every published article, sorted by date. Stays live: new articles appear without a refresh; deleted ones disappear.
 
 ```vue
-<!-- views/ArticleIndex.vue — uses useDocuments to list -->
+<!-- views/ArticleIndex.vue -->
 <script setup>
 import { useDocuments } from 'mikser-io-sdk-vue'
 
-// Reactive list — new articles appear without refresh; deleted ones disappear.
 const { documents: articles, loading } = useDocuments({
-    filter: { type: 'document', 'meta.collection': 'articles', 'meta.published': true },
+    filter: { 'meta.layout': 'article', 'meta.published': true },
     sort:   { 'meta.date': -1 },
     fields: ['id', 'meta.title', 'meta.date', 'meta.summary', 'meta.route'],
     limit:  20,
@@ -75,21 +103,23 @@ const { documents: articles, loading } = useDocuments({
 </template>
 ```
 
+**ArticleView.vue** — a single article. Uses `useDocument` to fetch the one being viewed and re-render when an editor saves it.
+
 ```vue
-<!-- views/DocumentPage.vue — uses useDocument to show one -->
+<!-- views/ArticleView.vue -->
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
 const props = defineProps({ docId: String })
-
-// Live single doc — re-renders when an editor saves the file.
 const { document, loading } = useDocument(() => props.docId)
 </script>
 
 <template>
-    <article v-if="document">
-        <h1>{{ document.meta?.title }}</h1>
-        <time v-if="document.meta?.date">{{ document.meta.date }}</time>
+    <article v-if="document" class="article">
+        <header>
+            <h1>{{ document.meta?.title }}</h1>
+            <time>{{ document.meta?.date }}</time>
+        </header>
         <div v-html="document.content" />
     </article>
     <p v-else-if="loading">Loading…</p>
@@ -97,7 +127,26 @@ const { document, loading } = useDocument(() => props.docId)
 </template>
 ```
 
-The two compose: editor publishes a new article in Decap → the watcher fires → `ArticleIndex` gets a `create` event and the new card appears at the top of the list, all without a page refresh. Click into it → `DocumentPage` mounts → another `useDocument` subscription opens → when the editor edits the body, the article re-renders in place.
+**PageView.vue** — a static marketing page. Same composable, different shape.
+
+```vue
+<!-- views/PageView.vue -->
+<script setup>
+import { useDocument } from 'mikser-io-sdk-vue'
+
+const props = defineProps({ docId: String })
+const { document } = useDocument(() => props.docId)
+</script>
+
+<template>
+    <main v-if="document" class="page">
+        <h1>{{ document.meta?.title }}</h1>
+        <div v-html="document.content" />
+    </main>
+</template>
+```
+
+The four compose under live updates. An editor publishes a new article in Decap → the watcher fires → `ArticleIndex` (anywhere it's rendered) gets a `create` event and the new card appears at the top of the list, no refresh. Click into it → `ArticleView` mounts via the `meta.layout: article` dispatch → its `useDocument` subscription opens → editor edits the body → the article re-renders in place. Switch to a marketing page → the same dispatch picks `PageView` instead; the same `useDocument` composable powers both, the shape of the rendering is the only difference.
 
 That's the whole story. Everything below is detail.
 
