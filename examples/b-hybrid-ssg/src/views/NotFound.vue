@@ -1,0 +1,6 @@
+<template>
+    <main class="not-found">
+        <h1>Page not found</h1>
+        <router-link to="/">Back to home</router-link>
+    </main>
+</template>

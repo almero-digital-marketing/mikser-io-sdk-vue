@@ -243,6 +243,8 @@ That's the whole story. Everything below is detail.
 
 Three common shapes. Each makes a different trade between SEO, build complexity, and how much Vue does. Pick before you start; mixing them mid-project is painful.
 
+Each shape ships as a complete starter project under [`examples/`](./examples) — `vite.config.js`, `package.json`, full source tree, README explaining how to run it.
+
 ### A) Pure SPA — runtime everything, live everywhere
 
 **When:** Editor UIs, admin dashboards, internal apps. SEO doesn't matter. You want the fastest dev loop and the lowest build complexity.

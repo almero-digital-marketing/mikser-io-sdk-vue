@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Example C — Islands on a mikser-rendered page</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1em; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 1em; }
+        article h1 { margin-bottom: 0.25em; }
+        .meta { color: #666; }
+        .search-box, .booking-form, .cart-counter { margin: 1em 0; }
+        .badge { background: #e23; color: #fff; border-radius: 99px; padding: 0.1em 0.5em; font-size: 0.8em; }
+        fieldset { border: 1px solid #ddd; padding: 0.5em 1em; }
+        label { display: block; margin: 0.25em 0; }
+        button { padding: 0.5em 1em; background: #07a; color: #fff; border: 0; cursor: pointer; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .success { color: #060; }
+        .error { color: #c00; }
+    </style>
+</head>
+<body>
+    <!--
+      A simulated mikser-rendered page. In a real project, mikser's
+      render-hbs (or similar) plugin produces this HTML at build time
+      from a layout template + a document's content. The body content,
+      headings, and metadata are all server-rendered.
+
+      The data-island elements are the mount points. Each one gets its
+      own tiny Vue bundle that handles a specific interactive feature.
+      The rest of the page never loads JavaScript.
+    -->
+
+    <header>
+        <h2>Acme Co</h2>
+        <!-- Pure client-side island — no mikser, just localStorage -->
+        <div data-island="cart-counter"></div>
+    </header>
+
+    <article>
+        <h1>Welcome to our store</h1>
+        <p class="meta">A static page rendered by mikser. The interactive bits are Vue islands.</p>
+
+        <p>This is mikser-produced HTML — fast to serve, SEO-correct, no client JS needed to read it. Everything below the next heading is a Vue island that the mikser-rendered HTML mounts on demand.</p>
+
+        <!-- Island #1 — search backed by mikser -->
+        <h2>Find something</h2>
+        <div data-island="search" data-base-url="/" data-endpoint="public"></div>
+
+        <!-- Island #2 — booking form, reads slots from mikser, posts elsewhere -->
+        <h2>Book a consultation</h2>
+        <div
+            data-island="booking"
+            data-base-url="/"
+            data-endpoint="public"
+            data-submit-url="/api/booking/submit"
+        ></div>
+    </article>
+
+    <!--
+      Each island is independent. They could ship lazily (intersection-
+      observer-driven) — the example loads them eagerly for clarity.
+      In production: defer or load on visibility for islands below the
+      fold.
+    -->
+    <script type="module" src="/src/islands/search.js"></script>
+    <script type="module" src="/src/islands/cart-counter.js"></script>
+    <script type="module" src="/src/islands/booking.js"></script>
+</body>
+</html>
