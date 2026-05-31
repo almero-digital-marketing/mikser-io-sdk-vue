@@ -348,3 +348,26 @@ export declare function useSimilar<T = unknown>(
     query: MaybeRef<string> | (() => string),
     options?: UseSimilarOptions,
 ): UseSimilarResult<T>
+
+export type MikserStatus = 'connecting' | 'ready' | 'unreachable'
+
+export interface UseMikserStatusOptions {
+    /** Override the injected client. Default: client from createMikserPlugin. */
+    client?: EntitiesClient
+    /** Deadline before falling back to 'unreachable'. Default: 5000 ms. */
+    timeoutMs?: number
+}
+
+/**
+ * Connection-status composable. Returns a Ref<MikserStatus> that starts
+ * at 'connecting', moves to 'ready' on the first successful list() probe,
+ * and moves to 'unreachable' on probe failure or deadline timeout.
+ *
+ * One-shot: once the status leaves 'connecting' it does not flip back.
+ * For a live health signal, watch the `error` ref of useDocuments instead.
+ *
+ * @example
+ *   const status = useMikserStatus()
+ *   // <RouterView v-if="status === 'ready'" />
+ */
+export declare function useMikserStatus(options?: UseMikserStatusOptions): Ref<MikserStatus>

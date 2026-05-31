@@ -31,6 +31,7 @@ export {
 } from './src/router.js'
 export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
 export { provideAssetIndex, useAsset }          from './src/asset.js'
+export { useMikserStatus }                      from './src/status.js'
 export {
     createMikserVectorPlugin,
     useMikserVectorClient,
