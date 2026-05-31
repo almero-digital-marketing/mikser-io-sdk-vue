@@ -6,8 +6,9 @@ A standalone mikser project. Run it once, point all three Vue examples at it. Th
 
 | Path | Purpose |
 |---|---|
-| `mikser.config.js` | Plugins (`documents`, `layouts`, `render-hbs`, `render-markdown`, `api`) + a `public` api endpoint with `list` and `subscribe` operations |
+| `mikser.config.js` | Plugins (`documents`, `layouts`, `plugin-schemas`, `render-hbs`, `render-markdown`, `api`) + a `public` api endpoint with `list` and `subscribe` operations |
 | `layouts/page.html.hbs` | Generic page template — wraps content with header, search island mount point, cart-counter island mount point. Used only by the `islands` example. |
+| `schemas/*.js` | Zod schemas — one per layout (`page`, `article`, `product`, `landing`, `slot`). `mikser-io-plugin-schemas` validates every loaded entity against the schema that matches its `meta.layout`, and emits `entities.d.ts` for the Vue apps to import as types. |
 | `documents/en/*` | Pages, articles, products, a landing page, booking slots |
 | `documents/bg/*` | Bulgarian translations of `index` and `about` — demonstrates `useHref()`'s multilingual fallback chain |
 
@@ -80,7 +81,7 @@ Same `useDocument` composable on the client. Same SSE event from the server. Sam
 ## Conventions that matter
 
 - **`meta.published: true`** — required for visibility. The api endpoint's `query` filter rejects everything else. Useful for drafts.
-- **`meta.layout`** — drives the Vue dispatch (which view component renders this doc). Match the keys in each example's `route-mapping.js`.
+- **`meta.layout`** — drives the Vue dispatch (which view component renders this document). Match the keys in each example's `route-mapping.js`.
 - **`meta.href`** — the logical reference (same across all translations).
 - **`meta.route`** — the deployed URL (different per translation). Vue's `meta.route` is what shows in the address bar; `useHref` returns it.
 - **`meta.lang`** — which language this translation represents. Documents without `meta.lang` go in `useHref`'s `'default'` bucket and resolve regardless of locale request.
@@ -99,3 +100,21 @@ The `hybrid-ssg` build script (`build/generate-routes.mjs`) reads from the api a
 mikser's watch mode re-runs the affected lifecycle phases per file change — adding a new document fires `create`; editing an existing one fires `update`; deleting fires `delete`. SSE pushes each to every active subscription whose filter matches.
 
 Try adding a new file under `documents/en/articles/` while the examples are running. It appears at the top of `ArticleIndex.vue` in `pure-spa` and `hybrid-ssg`'s editor — no manual refresh.
+
+## Schemas (typed front-matter)
+
+The `schemas/` folder holds one Zod schema per layout. `mikser-io-plugin-schemas` does two things with them:
+
+1. **Validates each entity's `meta` against the matching schema** as it's loaded. The demo runs in `onError: 'warn'` mode, so a typo (e.g. dropping `author` from an article) shows up as a server log line — the entity still appears in the catalog and the Vue apps still render it. Flip to `onError: 'fail'` in `mikser.config.js` to make the build exit non-zero on the first invalid entity.
+2. **Emits `entities.d.ts`** at the project root after every build, exposing one `XxxMeta` type per layout plus a `MetaByLayout<L>` helper. The Vue apps import from this file to get typed `useDocument` results:
+
+   ```ts
+   import type { MetaByLayout } from '../mikser-content/entities'
+   import { useDocument } from 'mikser-io-sdk-vue'
+
+   const { document } = useDocument<{ meta: MetaByLayout<'article'> }>(id)
+   //                                                            ↑
+   //                          autocomplete on .title / .author / .summary
+   ```
+
+Edit a schema while the server is running and the plugin re-validates affected entities and re-emits `entities.d.ts` immediately — same HMR shape as the rest of mikser.

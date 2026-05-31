@@ -8,11 +8,11 @@ import { createMikserPlugin, createMikserRouter } from 'mikser-io-sdk-vue'
 import { mapRoute } from '../route-mapping.js'
 import App from './App.vue'
 
-const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
 const router = await createMikserRouter({
-    client: docs,
+    client: documents,
     mapRoute,
     staticRoutes: [
         { path: '/admin/',         name: 'editor-home',     component: () => import('./EditorHome.vue') },
@@ -23,6 +23,6 @@ const router = await createMikserRouter({
 })
 
 createApp(App)
-    .use(createMikserPlugin({ client: docs }))
+    .use(createMikserPlugin({ client: documents }))
     .use(router)
     .mount('#app')

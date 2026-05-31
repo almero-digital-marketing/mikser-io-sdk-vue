@@ -8,7 +8,7 @@ export const MIKSER_CLIENT = Symbol('mikser-io.client')
 /**
  * Vue plugin — provides the entities client app-wide via inject().
  *
- *   app.use(createMikserPlugin({ client: docs }))
+ *   app.use(createMikserPlugin({ client: documents }))
  */
 export function createMikserPlugin({ client } = {}) {
     if (!client) {

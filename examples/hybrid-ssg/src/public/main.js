@@ -12,13 +12,13 @@ import { createMikserPlugin } from 'mikser-io-sdk-vue'
 import { createRouter } from './router.js'
 import App from './App.vue'
 
-const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
 export const createApp = ViteSSG(
     App,
     { routes: createRouter() },
     ({ app }) => {
-        app.use(createMikserPlugin({ client: docs }))
+        app.use(createMikserPlugin({ client: documents }))
     },
 )

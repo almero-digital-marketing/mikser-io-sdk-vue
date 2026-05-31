@@ -11,15 +11,15 @@ export const views = {
     page:    () => import('./views/PageView.vue'),    // fallback for unknown layouts
 }
 
-export function mapRoute(doc) {
+export function mapRoute(document) {
     return {
-        path:      doc.meta.route,
-        name:      doc.id,
-        component: views[doc.meta.layout] ?? views.page,
-        props:     route => ({ entityId: doc.id, params: route.params }),
+        path:      document.meta.route,
+        name:      document.id,
+        component: views[document.meta.layout] ?? views.page,
+        props:     route => ({ entityId: document.id, params: route.params }),
         meta: {
-            layout: doc.meta?.layout,
-            title:  doc.meta?.title,
+            layout: document.meta?.layout,
+            title:  document.meta?.title,
         },
     }
 }

@@ -3,29 +3,29 @@ import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { useMikserClient } from 'mikser-io-sdk-vue'
 
-// Smart 404: before showing "not found", check whether a doc with
+// Smart 404: before showing "not found", check whether a document with
 // meta.route matching the current path has just landed in the catalog
 // (e.g. published seconds ago, after createMikserRouter's initial
 // list() but processed by the live() subscription too late to
 // re-navigate). If so, register the route and re-navigate. Otherwise
 // show the 404 message.
-const route   = useRoute()
-const router  = useRouter()
-const docs    = useMikserClient()
-const checking = ref(true)
+const route     = useRoute()
+const router    = useRouter()
+const documents = useMikserClient()
+const checking  = ref(true)
 
 onMounted(async () => {
-    const { items: [doc] } = await docs.list({
+    const { items: [document] } = await documents.list({
         filter: { 'meta.route': route.path, 'meta.published': true },
         limit:  1,
     })
-    if (doc) {
+    if (document) {
         const { default: PageView } = await import('./PageView.vue')
         router.addRoute({
-            path:      doc.meta.route,
-            name:      doc.id,
+            path:      document.meta.route,
+            name:      document.id,
             component: PageView,
-            props:     () => ({ entityId: doc.id }),
+            props:     () => ({ entityId: document.id }),
         })
         router.replace(route.fullPath)
     } else {

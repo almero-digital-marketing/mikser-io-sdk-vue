@@ -17,7 +17,7 @@ export const HREF_INDEX = Symbol('mikser-io.href-index')
  *
  * Front-matter convention:
  *   meta.href:  '/about'           (logical reference)
- *   meta.lang:  'en'               (which language this doc represents)
+ *   meta.lang:  'en'               (which language this document represents)
  *   meta.route: '/en/about'        (actual URL — what useHref() returns)
  */
 export function provideHrefIndex({
@@ -32,13 +32,13 @@ export function provideHrefIndex({
 
     const dispose = client.live(
         filter,
-        (docs) => {
+        (documents) => {
             const next = {}
-            for (const doc of docs) {
-                const ref = doc.meta?.href
+            for (const document of documents) {
+                const ref = document.meta?.href
                 if (!ref) continue
-                const lang = doc.meta?.lang ?? defaultLang
-                const url  = doc.meta?.route ?? doc.meta?.destination ?? ref
+                const lang = document.meta?.lang ?? defaultLang
+                const url  = document.meta?.route ?? document.meta?.destination ?? ref
                 if (!next[ref]) next[ref] = {}
                 next[ref][lang] = url
             }
@@ -162,7 +162,7 @@ export function useAlternates({ route, languages } = {}) {
         }
 
         // No list — return only languages that exist in the catalog.
-        // Skip 'default' (it's the bucket for un-tagged docs, not a
+        // Skip 'default' (it's the bucket for un-tagged documents, not a
         // real locale) and the current page's own language.
         return Object.entries(entry)
             .filter(([lang]) => lang !== c.lang && lang !== 'default')

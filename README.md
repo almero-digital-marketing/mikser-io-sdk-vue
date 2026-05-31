@@ -24,7 +24,7 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, createMikserRouter } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
 // One Vue view per content layout. Each lazy-imports so it ships in
@@ -37,24 +37,24 @@ const views = {
 }
 
 const router = await createMikserRouter({
-    client: docs,
+    client: documents,
     staticRoutes: [
         // Hand-coded routes — pages that aren't a single document
         { path: '/articles', component: () => import('./views/ArticleIndex.vue') },
     ],
-    mapRoute: doc => ({
-        path:      doc.meta.route,
-        name:      doc.id,
-        component: views[doc.meta.layout] ?? views.page,  // dispatch
-        props:     route => ({ entityId: doc.id, params: route.params }),
-        meta:      { layout: doc.meta?.layout, title: doc.meta?.title },
+    mapRoute: document => ({
+        path:      document.meta.route,
+        name:      document.id,
+        component: views[document.meta.layout] ?? views.page,  // dispatch
+        props:     route => ({ entityId: document.id, params: route.params }),
+        meta:      { layout: document.meta?.layout, title: document.meta?.title },
     }),
     notFoundComponent: () => import('./views/NotFound.vue'),
     history: createWebHistory(),
 })
 
 createApp(App)
-    .use(createMikserPlugin({ client: docs }))
+    .use(createMikserPlugin({ client: documents }))
     .use(router)
     .mount('#app')
 ```
@@ -66,11 +66,11 @@ createApp(App)
 The flow through the Quick Start above:
 
 ```
-mapRoute receives a doc      → its doc.id is '/documents/en/articles/welcome.md'
-       passes doc.id as prop → ArticleView gets <ArticleView :doc-id="…welcome.md" />
-       useDocument(entityId)    → opens a live subscription for { id: '…welcome.md' }
-       SDK filters by id     → server returns just that one document
-       editor edits the file → SSE event flows back → component re-renders
+mapRoute receives a document   → its document.id is '/documents/en/articles/welcome.md'
+       passes document.id as prop → ArticleView gets <ArticleView :entity-id="…welcome.md" />
+       useDocument(entityId)      → opens a live subscription for { id: '…welcome.md' }
+       SDK filters by id          → server returns just that one document
+       editor edits the file      → SSE event flows back → component re-renders
 ```
 
 The `entityId` prop name follows mikser's vocabulary — documents, files, assets are all *entities*, and `entityId` is what the catalog calls their identifier. The SDK doesn't reserve the name; you can call the prop anything, but staying with `entityId` makes a Vue codebase recognisable to anyone who already knows mikser's terms.
@@ -258,7 +258,7 @@ Three common shapes. Each makes a different trade between SEO, build complexity,
 
 **When:** Editor UIs, admin dashboards, internal apps. SEO doesn't matter. You want the fastest dev loop and the lowest build complexity.
 
-**How it works:** No build-time route enumeration. The app fetches the route list at boot, mounts the router, and stays subscribed to changes. Editing a doc → SSE event → router updates → UI updates. No rebuild ever.
+**How it works:** No build-time route enumeration. The app fetches the route list at boot, mounts the router, and stays subscribed to changes. Editing a document → SSE event → router updates → UI updates. No rebuild ever.
 
 ```js
 // main.js
@@ -268,25 +268,25 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, createMikserRouter } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
 // Async — the app waits for the initial document list.
 const router = await createMikserRouter({
-    client:   docs,
-    mapRoute: doc => ({
-        path:      doc.meta.route,
-        name:      doc.id,
+    client:   documents,
+    mapRoute: document => ({
+        path:      document.meta.route,
+        name:      document.id,
         component: () => import('./views/DocumentPage.vue'),
-        props:     route => ({ entityId: doc.id, params: route.params }),
-        meta:      { layout: doc.meta?.layout },
+        props:     route => ({ entityId: document.id, params: route.params }),
+        meta:      { layout: document.meta?.layout },
     }),
     history:           createWebHistory(),
     notFoundComponent: () => import('./views/NotFound.vue'),
 })
 
 createApp(App)
-    .use(createMikserPlugin({ client: docs }))
+    .use(createMikserPlugin({ client: documents }))
     .use(router)
     .mount('#app')
 ```
@@ -312,8 +312,8 @@ import { createClient } from 'mikser-io-sdk-api'
 import { generateMikserRoutes } from 'mikser-io-sdk-vue'
 import { mapRoute } from '../src/route-mapping.js'   // shared
 
-const docs = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
-const routes = await generateMikserRoutes({ client: docs, mapRoute })
+const documents = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
+const routes = await generateMikserRoutes({ client: documents, mapRoute })
 
 await writeFile('./src/generated/routes.json',
     JSON.stringify(routes.map(r => ({ ...r, component: undefined })), null, 2))
@@ -385,10 +385,10 @@ import SearchBox from './SearchBox.vue'
 
 const el = document.getElementById('search-island')
 if (el) {
-    const docs = createClient({ baseUrl: '/' })   // same-origin
+    const documents = createClient({ baseUrl: '/' })   // same-origin
         .entities(el.dataset.endpoint)
     createApp(SearchBox)
-        .use(createMikserPlugin({ client: docs }))
+        .use(createMikserPlugin({ client: documents }))
         .mount(el)
 }
 ```
@@ -411,7 +411,7 @@ const { documents } = useDocuments(query)
 
 <template>
     <input v-model="q" placeholder="Search…" />
-    <ul><li v-for="d in documents" :key="d.id">{{ d.meta.title }}</li></ul>
+    <ul><li v-for="document in documents" :key="document.id">{{ document.meta.title }}</li></ul>
 </template>
 ```
 
@@ -474,9 +474,20 @@ const { document, loading, error, refresh } = useDocument(() => props.entityId)
 ```
 
 - `id` can be a string, a Ref, or a getter. When it changes, the subscription re-subscribes for the new id.
-- `document` is null while loading or when the doc doesn't exist.
+- `document` is null while loading or when the document doesn't exist.
 - Live-updates via `client.live({ id })` under the hood — when the document changes server-side, the ref updates without manual refetch.
 - Disposes the subscription on `onUnmounted`.
+
+`useDocument<T>(...)` is generic — pass the entity shape and `document` is typed accordingly. The recommended source for `T` is the `entities.d.ts` emitted by [`mikser-io-plugin-schemas`](https://github.com/almero-digital-marketing/mikser-io-plugin-schemas), which generates one `XxxMeta` alias per layout from Zod schemas in the mikser project:
+
+```ts
+import type { MetaByLayout } from '../mikser-content/entities'
+
+const { document } = useDocument<{ meta: MetaByLayout<'article'> }>(id)
+// document.value.meta.title / .author / .summary are all typed
+```
+
+Without `mikser-io-plugin-schemas`, you can still pass a hand-written interface — `useDocument<MyArticle>(id)` — the SDK doesn't care where `T` comes from.
 
 ### `useDocuments(query, options?)`
 
@@ -500,9 +511,9 @@ Builds a Vue Router whose content routes come from mikser. Returns a Promise —
 
 ```js
 const router = await createMikserRouter({
-    client:     docs,
+    client:     documents,
     filter:     { 'meta.published': true, 'meta.route': { $exists: true } },  // default
-    mapRoute:   doc => ({ path: doc.meta.route, name: doc.id, component, props, meta }),
+    mapRoute:   document => ({ path: document.meta.route, name: document.id, component, props, meta }),
     staticRoutes: [
         { path: '/login',     component: () => import('./views/Login.vue') },
         { path: '/dashboard', component: () => import('./views/Dashboard.vue') },
@@ -512,7 +523,7 @@ const router = await createMikserRouter({
 })
 ```
 
-- **`mapRoute`** is a callback (not config) so each route can inspect the doc's full `meta` (layout, type, etc.) and return different shapes per content type.
+- **`mapRoute`** is a callback (not config) so each route can inspect the document's full `meta` (layout, type, etc.) and return different shapes per content type.
 - The route **`name`** should be the document's `id` — the live sync uses it to know which routes to add / remove as content changes.
 - Static routes are mounted *before* content routes; the not-found component (if any) is mounted *after*. Order matters for matching priority.
 
@@ -526,11 +537,11 @@ import { writeFile } from 'node:fs/promises'
 import { createClient } from 'mikser-io-sdk-api'
 import { generateMikserRoutes } from 'mikser-io-sdk-vue'
 
-const docs = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
+const documents = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
 
 const routes = await generateMikserRoutes({
-    client: docs,
-    mapRoute: doc => ({ path: doc.meta.route, name: doc.id, /* … */ }),
+    client: documents,
+    mapRoute: document => ({ path: document.meta.route, name: document.id, /* … */ }),
 })
 
 await writeFile('./src/generated/routes.json', JSON.stringify(routes, null, 2))
@@ -770,8 +781,8 @@ The fallback chain: **requested lang → `'default'` bucket → any available la
 | Call | Index state | Result | Why |
 |---|---|---|---|
 | `href('/about', 'en')` | `{ '/about': { en: '/en/about', fr: '/fr/a-propos' } }` | `/en/about` | Exact match |
-| `href('/about', 'de')` | Same (no DE doc exists) | `/en/about` (or the first available) | Falls back to any available language so the link still works |
-| `href('/contact', 'en')` | `{ '/contact': { default: '/contact' } }` | `/contact` | Single-language docs live in `default`; matches across any locale request |
+| `href('/about', 'de')` | Same (no DE document exists) | `/en/about` (or the first available) | Falls back to any available language so the link still works |
+| `href('/contact', 'en')` | `{ '/contact': { default: '/contact' } }` | `/contact` | Single-language documents live in `default`; matches across any locale request |
 | `href('/contact', 'en')` | `{ '/contact': { default: '/contact', en: '/en/contact' } }` | `/en/contact` | Locale-specific wins over default when present |
 | `href('/typo')` | Not in index | `/typo` | **Unresolved — pass-through.** Broken links stay visible in the DOM. QA / Lighthouse / link-checkers spot them. |
 | `href('/about')` *(no lang passed)* | — | Uses `defaultLangRef` from `useHref(localeRef)` | The composable's default lang |
@@ -825,8 +836,8 @@ For SSG (scenario B from above), serialise the index at build time and hydrate f
 import { writeFile } from 'node:fs/promises'
 import { createClient } from 'mikser-io-sdk-api'
 
-const docs = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
-const { items } = await docs.list({
+const documents = createClient({ baseUrl: process.env.MIKSER_URL }).entities('public')
+const { items } = await documents.list({
     filter: { 'meta.href': { $exists: true } },
     fields: ['id', 'meta'],
     limit:  10_000,

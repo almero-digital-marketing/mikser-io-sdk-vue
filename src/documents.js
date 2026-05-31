@@ -5,7 +5,7 @@ import { ref, shallowRef, watch, unref, isRef, getCurrentScope, onScopeDispose }
 import { useMikserClient } from './plugin.js'
 
 /**
- * Live single-document composable. Resolves the doc by id and stays in
+ * Live single-document composable. Resolves the document by id and stays in
  * sync with changes via client.live().
  *
  * `id` accepts a string OR a Ref OR a getter — when it changes, the

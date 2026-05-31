@@ -10,13 +10,13 @@ import BookingForm from '../components/BookingForm.vue'
 
 const el = document.querySelector('[data-island="booking"]')
 if (el) {
-    const docs = createClient({ baseUrl: el.dataset.baseUrl ?? '/' })
+    const documents = createClient({ baseUrl: el.dataset.baseUrl ?? '/' })
         .entities(el.dataset.endpoint ?? 'public')
 
     createApp(BookingForm, {
         // Booking submissions go to a separate service, not mikser.
         submitUrl: el.dataset.submitUrl ?? '/api/booking/submit',
     })
-        .use(createMikserPlugin({ client: docs }))
+        .use(createMikserPlugin({ client: documents }))
         .mount(el)
 }

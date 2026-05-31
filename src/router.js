@@ -12,14 +12,14 @@
  * deleted content removes them, without a page reload.
  *
  *   const router = await createMikserRouter({
- *       client: docs,
+ *       client: documents,
  *       filter: { 'meta.published': true, 'meta.route': { $exists: true } },
- *       mapRoute: doc => ({
- *           path: doc.meta.route,
- *           name: doc.id,
+ *       mapRoute: document => ({
+ *           path: document.meta.route,
+ *           name: document.id,
  *           component: () => import('./views/DocumentPage.vue'),
- *           props: route => ({ entityId: doc.id, params: route.params }),
- *           meta: { layout: doc.meta?.layout },
+ *           props: route => ({ entityId: document.id, params: route.params }),
+ *           meta: { layout: document.meta?.layout },
  *       }),
  *       staticRoutes: [...],
  *       notFoundComponent: () => import('./views/NotFound.vue'),
@@ -60,7 +60,7 @@ export async function createMikserRouter({
     })
 
     // Track which content routes we've added so we can remove them
-    // cleanly when the doc disappears.
+    // cleanly when the document disappears.
     const contentRouteNames = new Set(initialContent.map(r => r.name).filter(Boolean))
 
     client.live(
@@ -102,8 +102,8 @@ export async function createMikserRouter({
  *
  *   // build/routes.mjs
  *   const routes = await generateMikserRoutes({
- *       client: docs,
- *       mapRoute: doc => ({ path: doc.meta.route, name: doc.id, ... }),
+ *       client: documents,
+ *       mapRoute: document => ({ path: document.meta.route, name: document.id, ... }),
  *   })
  *   await writeFile('./src/generated/routes.json', JSON.stringify(routes))
  */

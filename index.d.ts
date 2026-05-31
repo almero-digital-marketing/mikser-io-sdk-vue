@@ -87,7 +87,7 @@ export interface CreateMikserRouterOptions {
      * fields requested via fields=['id', 'meta'] — narrow further with
      * a custom `fields` if you need extra metadata for routing.
      */
-    mapRoute: (doc: any) => RouteRecordRaw
+    mapRoute: (document: any) => RouteRecordRaw
     /**
      * Which documents become routes. Default:
      *   { 'meta.published': true, 'meta.route': { $exists: true } }
@@ -114,7 +114,7 @@ export declare function createMikserRouter(
 
 export interface GenerateMikserRoutesOptions {
     client: EntitiesClient
-    mapRoute: (doc: any) => RouteRecordRaw
+    mapRoute: (document: any) => RouteRecordRaw
     filter?: Filter
 }
 

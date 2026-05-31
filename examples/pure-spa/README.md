@@ -16,7 +16,7 @@ The simplest setup. The entire app fetches content at runtime and stays live as 
 - Three structurally different content views — `ArticleView`, `ProductView`, `LandingView` — plus a `PageView` fallback
 - `useDocuments` powering two collection contexts — the navigation menu and the article index
 - `useDocument` powering each content view
-- A **smart 404** that checks the catalog before giving up — handles docs that publish between page loads
+- A **smart 404** that checks the catalog before giving up — handles documents that publish between page loads
 
 ## Project structure
 

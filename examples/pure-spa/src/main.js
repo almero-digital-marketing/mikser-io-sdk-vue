@@ -5,7 +5,7 @@ import { createMikserPlugin, createMikserRouter } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 import { mapRoute } from './route-mapping.js'
 
-const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
 // Async — waits for the initial document list before mounting. For an
@@ -13,10 +13,10 @@ const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
 // boot is fine. The alternative would be a blank shell that fetches on
 // every navigation; that's a worse experience for the typical user.
 const router = await createMikserRouter({
-    client: docs,
+    client: documents,
     mapRoute,
     staticRoutes: [
-        // Hand-coded routes — listing pages aren't backed by a single doc
+        // Hand-coded routes — listing pages aren't backed by a single document
         { path: '/articles', name: 'articles', component: () => import('./views/ArticleIndex.vue') },
         { path: '/',         name: 'home',     component: () => import('./views/Home.vue') },
     ],
@@ -25,6 +25,6 @@ const router = await createMikserRouter({
 })
 
 createApp(App)
-    .use(createMikserPlugin({ client: docs }))
+    .use(createMikserPlugin({ client: documents }))
     .use(router)
     .mount('#app')
