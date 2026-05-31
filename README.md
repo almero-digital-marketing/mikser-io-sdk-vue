@@ -243,7 +243,15 @@ That's the whole story. Everything below is detail.
 
 Three common shapes. Each makes a different trade between SEO, build complexity, and how much Vue does. Pick before you start; mixing them mid-project is painful.
 
-Each shape ships as a complete starter project under [`examples/`](./examples) — `vite.config.js`, `package.json`, full source tree, README explaining how to run it.
+> ### 📦 Runnable starter projects
+>
+> Each scenario ships as a complete starter under [`examples/`](./examples) — Vite config, `package.json`, full source tree, its own README explaining how to run it. Clone and modify rather than translate the snippets below into project structure.
+>
+> | Scenario | Starter | What's in it |
+> |---|---|---|
+> | A — Pure SPA | **[`examples/pure-spa`](./examples/pure-spa)** | 12 files — Vite + Vue + `createMikserRouter` |
+> | B — Hybrid SSG + Live | **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** | 16 files — two Vite configs (public + editor), shared `route-mapping.js` |
+> | C — Islands | **[`examples/islands`](./examples/islands)** | 10 files — multi-entry Vite build, simulated mikser-rendered page |
 
 ### A) Pure SPA — runtime everything, live everywhere
 
@@ -283,6 +291,8 @@ createApp(App)
 ```
 
 **Trade-offs:** Fastest to set up. Worst for SEO (the public-facing HTML is empty until JS loads). Initial boot pays a `list()` round trip (~100-500ms for typical sites).
+
+> **📦 Full starter project:** **[`examples/pure-spa`](./examples/pure-spa)** — clone, `npm install`, set `VITE_MIKSER_URL`, `npm run dev`.
 
 ---
 
@@ -342,6 +352,8 @@ project/
 ```
 
 **Trade-offs:** Two entry points, two build steps, slightly more wiring. In exchange: SEO-correct, CDN-friendly public deploy + live editor preview from the same content source.
+
+> **📦 Full starter project:** **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** — the load-bearing file is `src/route-mapping.js`, shared between three consumers (build script, public router, editor router).
 
 ---
 
@@ -403,6 +415,8 @@ const { documents } = useDocuments(query)
 ```
 
 **Trade-offs:** Best performance (static HTML + small Vue bundle, lazy-loaded). Simplest deployment (just files). But Vue doesn't own routing — the URL structure is mikser's responsibility.
+
+> **📦 Full starter project:** **[`examples/islands`](./examples/islands)** — three islands (search, booking, cart-counter) and a simulated mikser-rendered HTML page showing where they mount.
 
 ---
 
