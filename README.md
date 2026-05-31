@@ -1,6 +1,25 @@
 # mikser-io-sdk-vue
 
-Vue 3 composables and router integration for a [mikser-io](https://github.com/almero-digital-marketing/mikser-io) server. Built on top of [`mikser-io-sdk-api`](https://github.com/almero-digital-marketing/mikser-io-sdk-api) — same patterns (`live()`, `list()`, `entities` endpoints, the live-updates contract), wrapped as idiomatic Vue 3.
+**Wire a Vue 3 app to a [mikser-io](https://github.com/almero-digital-marketing/mikser-io) content backend in ~10 lines.** Content stays as `.md` and `.yml` files on disk — diffable, grep-able, copy-anywhere. The composables below give you live updates over SSE, typed access to layout-shaped front-matter, multilingual URL resolution, asset metadata, and semantic search.
+
+| What you get | Reads as |
+|---|---|
+| **Live content** | `const { document } = useDocument(id)` — re-renders as the file changes |
+| **Live lists** | `const { documents } = useDocuments({ filter, sort, fields })` |
+| **Multilingual URLs** | `href('/about')` → `/en/about` or `/fr/a-propos` per locale |
+| **Hreflang + switchers** | `useAlternates({ route })` |
+| **Asset metadata** | `image('/assets/hero.jpg')` → `{ src, srcset, width, height, alt }` |
+| **Semantic search** | `useSimilar(store, query)` with built-in debounce + stale-discard |
+| **Live routes** | `useMikserRoutes(router, { mapRoute })` — augments **your** router, doesn't replace it |
+| **Build-time routes** | `generateMikserRoutes()` for SSG manifests |
+
+**Augment, don't own.** Your app stays yours. Mikser slots in alongside your own router, your own views, your own auth — nothing about the SDK insists on running the whole app.
+
+**One mental model across every rendering shape** — pure SPA, hybrid SSG with a live editor, mikser-rendered HTML with Vue islands. Same composables, different mount. See [`examples/`](./examples) for the three patterns side-by-side.
+
+**Typed at the seam.** Pair with [`mikser-io-plugin-schemas`](https://github.com/almero-digital-marketing/mikser-io-plugin-schemas) to author Zod schemas alongside your content; `useDocument<{ meta: MetaByLayout<'article'> }>(id)` then carries the front-matter shape straight into your templates.
+
+Built on [`mikser-io-sdk-api`](https://github.com/almero-digital-marketing/mikser-io-sdk-api) — same primitives (`live()`, `list()`, `entities` endpoints, the live-updates contract), wrapped as idiomatic Vue 3.
 
 Zero own dependencies. Vue 3 + Vue Router 4 (optional) + `mikser-io-sdk-api` 2.x as peer deps.
 
