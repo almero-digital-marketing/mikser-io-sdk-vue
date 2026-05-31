@@ -1,123 +1,29 @@
-// Router integration — three shapes, pick whichever fits your app:
-//
-//   createMikserRouter(opts)         — async factory that BUILDS a new
-//                                      Vue Router and keeps it in sync.
-//                                      Right when mikser owns routing.
-//
-//   useMikserRoutes(opts)            — returns a shallowRef<RouteRecordRaw[]>
-//                                      that stays in sync. Right when you
-//                                      want catalog routes as data — feed
-//                                      them into your own createRouter()
-//                                      call or compose with other route
-//                                      sources.
+// Router integration — three shapes. Mikser augments your app's router;
+// it doesn't own it.
 //
 //   useMikserRoutesSync(router, opts) — applies catalog routes to an
 //                                      EXISTING vue-router instance via
-//                                      addRoute / removeRoute. Right when
-//                                      you already have a router with your
-//                                      own static routes and want mikser
-//                                      to slot in alongside them.
+//                                      addRoute / removeRoute. The
+//                                      common case: your app constructs
+//                                      its own router with hand-coded
+//                                      routes; mikser slots in alongside.
+//                                      Returns { dispose, seeded }.
+//
+//   useMikserRoutes(opts)            — returns a Ref<RouteRecordRaw[]>
+//                                      that stays in sync. Right when
+//                                      you want catalog routes as data —
+//                                      to feed a single createRouter()
+//                                      call at boot, or to project into
+//                                      other UI (admin pickers, sitemaps,
+//                                      debug panels).
 //
 //   generateMikserRoutes(opts)        — one-shot Promise<RouteRecordRaw[]>
-//                                      for build-time / SSG. No subscription.
-//
-// vue-router is an optional peer dep; createMikserRouter lazy-imports it
-// so projects that don't use the router helpers pay nothing for its absence.
+//                                      for build-time / SSG. No
+//                                      subscription, no router involvement.
 import { shallowRef, getCurrentScope, onScopeDispose } from 'vue'
 import { useMikserClient } from './plugin.js'
 
 const DEFAULT_FILTER = { 'meta.published': true, 'meta.route': { $exists: true } }
-
-/**
- * Build a Vue Router instance whose routes come from the mikser catalog.
- * Static routes (hand-coded) and dynamic content routes coexist; the
- * latter stay in sync via client.live() — new content adds routes,
- * deleted content removes them, without a page reload.
- *
- *   const router = await createMikserRouter({
- *       client: documents,
- *       filter: { 'meta.published': true, 'meta.route': { $exists: true } },
- *       mapRoute: document => ({
- *           path: document.meta.route,
- *           name: document.id,
- *           component: () => import('./views/DocumentPage.vue'),
- *           props: route => ({ entityId: document.id, params: route.params }),
- *           meta: { layout: document.meta?.layout },
- *       }),
- *       staticRoutes: [...],
- *       notFoundComponent: () => import('./views/NotFound.vue'),
- *       history: createWebHistory(),
- *   })
- */
-export async function createMikserRouter({
-    client,
-    filter = { 'meta.published': true, 'meta.route': { $exists: true } },
-    mapRoute,
-    staticRoutes = [],
-    notFoundComponent = null,
-    history,
-    routerOptions = {},
-} = {}) {
-    if (!client)   throw new Error('createMikserRouter: { client } is required')
-    if (!mapRoute) throw new Error('createMikserRouter: { mapRoute } is required')
-    if (!history)  throw new Error('createMikserRouter: { history } is required (createWebHistory()/createMemoryHistory())')
-
-    // Lazy-import vue-router so projects that don't need it pay nothing
-    const { createRouter } = await import('vue-router')
-
-    const { items } = await client.list({
-        filter,
-        fields: ['id', 'meta'],
-        limit:  10_000,
-    })
-
-    const initialContent = items.map(mapRoute)
-    const trailing = notFoundComponent
-        ? [{ path: '/:pathMatch(.*)*', name: 'NotFound', component: notFoundComponent }]
-        : []
-
-    const router = createRouter({
-        history,
-        routes: [...staticRoutes, ...initialContent, ...trailing],
-        ...routerOptions,
-    })
-
-    // Track which content routes we've added so we can remove them
-    // cleanly when the document disappears.
-    const contentRouteNames = new Set(initialContent.map(r => r.name).filter(Boolean))
-
-    client.live(
-        filter,
-        (currentDocs) => {
-            const desired = new Map(
-                currentDocs
-                    .map(d => {
-                        const r = mapRoute(d)
-                        return r?.name ? [r.name, r] : null
-                    })
-                    .filter(Boolean),
-            )
-
-            // Add new
-            for (const [name, route] of desired) {
-                if (!contentRouteNames.has(name)) {
-                    router.addRoute(route)
-                    contentRouteNames.add(name)
-                }
-            }
-            // Remove vanished
-            for (const name of contentRouteNames) {
-                if (!desired.has(name)) {
-                    router.removeRoute(name)
-                    contentRouteNames.delete(name)
-                }
-            }
-        },
-        { fields: ['id', 'meta'] },
-    )
-
-    return router
-}
 
 /**
  * Live reactive list of route records from the mikser catalog. Returns
@@ -222,6 +128,15 @@ export function useMikserRoutesSync(router, {
 
     const tracked = new Set()
 
+    // `seeded` resolves the first time onChange fires (i.e. the initial
+    // catalog list has landed and routes have been registered). Right
+    // when the consumer wants to await before mount so navigation hits a
+    // registered route on first paint rather than a 404 → re-register
+    // → re-navigate flicker.
+    let resolveSeeded
+    const seeded = new Promise(resolve => { resolveSeeded = resolve })
+    let firstFire = true
+
     const dispose = client.live(
         filter,
         (documents) => {
@@ -244,6 +159,10 @@ export function useMikserRoutesSync(router, {
                     tracked.delete(name)
                 }
             }
+            if (firstFire) {
+                firstFire = false
+                resolveSeeded()
+            }
         },
         { fields: ['id', 'meta'] },
     )
@@ -252,7 +171,7 @@ export function useMikserRoutesSync(router, {
         onScopeDispose(() => dispose?.())
     }
 
-    return dispose
+    return { dispose, seeded }
 }
 
 /**

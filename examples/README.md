@@ -49,8 +49,8 @@ Don't read them top-to-bottom. Each example is structured the same way so you ca
 | Vite config | `vite.config.js` | `vite.config.js` (multi-entry) | `vite.config.js` (library mode) |
 | Entry HTML | `index.html` | `index.html` + `admin.html` | one HTML per island host |
 | Entry JS | `src/main.js` | `src/public/main.js`, `src/editor/main.js` | `src/islands/*.js` (one per island) |
-| Router | runtime — `createMikserRouter()` | build-time `generateMikserRoutes()` + runtime `createRouter()` | none — mikser owns URLs |
+| Router | runtime — `createRouter()` + `useMikserRoutesSync` | build-time `generateMikserRoutes()` + runtime `createRouter()` + `useMikserRoutesSync` (editor) | none — mikser owns URLs |
 | Component dispatch | shared `route-mapping.js` | shared `route-mapping.js` | n/a |
 | Live updates | yes (runtime) | yes (editor only) | yes (in islands) |
 
-The shared concepts move position; the underlying primitives (`useDocument`, `useDocuments`, `mapRoute`, `createMikserRouter`) stay the same. That's the point — picking between the three is a build-tooling decision, not a different SDK.
+The shared concepts move position; the underlying primitives (`useDocument`, `useDocuments`, `mapRoute`, `useMikserRoutesSync`) stay the same. That's the point — picking between the three is a build-tooling decision, not a different SDK.

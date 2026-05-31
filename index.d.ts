@@ -10,8 +10,6 @@ import type {
 import type {
     Router,
     RouteRecordRaw,
-    RouterHistory,
-    RouterOptions,
 } from 'vue-router'
 
 // ---------------------------------------------------------------------------
@@ -80,38 +78,6 @@ export declare function useDocuments<T = unknown>(
 // Router integration
 // ---------------------------------------------------------------------------
 
-export interface CreateMikserRouterOptions {
-    client: EntitiesClient
-    /**
-     * Maps a document into a Vue Router RouteRecordRaw. Receives the
-     * fields requested via fields=['id', 'meta'] — narrow further with
-     * a custom `fields` if you need extra metadata for routing.
-     */
-    mapRoute: (document: any) => RouteRecordRaw
-    /**
-     * Which documents become routes. Default:
-     *   { 'meta.published': true, 'meta.route': { $exists: true } }
-     */
-    filter?: Filter
-    /** Hand-coded routes (login, dashboard, etc.) — mounted before content. */
-    staticRoutes?: RouteRecordRaw[]
-    /** Component for the catch-all '/:pathMatch(.*)*' route. Omit to skip. */
-    notFoundComponent?: RouteRecordRaw['component']
-    /** Required — createWebHistory() / createMemoryHistory() / createWebHashHistory(). */
-    history: RouterHistory
-    /** Forwarded to createRouter() — sensitive, strict, scrollBehavior, etc. */
-    routerOptions?: Omit<RouterOptions, 'history' | 'routes'>
-}
-
-/**
- * Build a Vue Router whose content routes come from mikser and stay
- * live via client.live(). Async — awaits the initial document list
- * before mounting.
- */
-export declare function createMikserRouter(
-    options: CreateMikserRouterOptions,
-): Promise<Router>
-
 export interface UseMikserRoutesOptions {
     /** Defaults to the injected client. */
     client?: EntitiesClient
@@ -149,19 +115,31 @@ export interface UseMikserRoutesSyncOptions {
     mapRoute: (document: any) => RouteRecordRaw | null | undefined
 }
 
+export interface UseMikserRoutesSyncResult {
+    /**
+     * Stop the live subscription. Idempotent. Also runs automatically
+     * on the surrounding effect scope's teardown.
+     */
+    dispose: () => void
+    /**
+     * Resolves the first time the initial catalog list lands and routes
+     * have been registered. `await seeded` before mounting your app so
+     * the first navigation hits a registered route on first paint rather
+     * than a 404 → re-register → re-navigate flicker.
+     */
+    seeded: Promise<void>
+}
+
 /**
  * Keep an existing vue-router instance in sync with the mikser catalog
  * via addRoute / removeRoute. Right when you already have a router with
  * your own static / dynamic routes and want mikser to slot in alongside
  * them, without rebuilding the whole router.
- *
- * Returns a dispose function; also auto-disposes on the surrounding
- * effect scope's teardown.
  */
 export declare function useMikserRoutesSync(
     router: Router,
     options: UseMikserRoutesSyncOptions,
-): () => void
+): UseMikserRoutesSyncResult
 
 export interface GenerateMikserRoutesOptions {
     client: EntitiesClient

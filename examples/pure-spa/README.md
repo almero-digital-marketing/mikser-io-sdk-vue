@@ -11,7 +11,8 @@ The simplest setup. The entire app fetches content at runtime and stays live as 
 
 ## What it shows
 
-- `createMikserRouter()` — async factory that fetches the initial document list and keeps the route table live via `client.live()`
+- **The app owns the router.** `createRouter()` is constructed in `main.js` with hand-coded static routes (home, article index, NotFound). mikser is plugged in alongside via `useMikserRoutesSync` — it doesn't own routing, it augments it.
+- **`useMikserRoutesSync(router, { mapRoute })`** keeps catalog-driven routes in sync via `addRoute` / `removeRoute`. Returns `{ dispose, seeded }`; the example awaits `seeded` before mounting so the first navigation hits a registered route.
 - **Component dispatch by `meta.layout`** in `src/route-mapping.js`
 - Three structurally different content views — `ArticleView`, `ProductView`, `LandingView` — plus a `PageView` fallback
 - `useDocuments` powering two collection contexts — the navigation menu and the article index
@@ -26,7 +27,7 @@ pure-spa/
 ├── vite.config.js
 ├── package.json
 └── src/
-    ├── main.js                ← createApp + createMikserRouter + mount
+    ├── main.js                ← createApp + createRouter + useMikserRoutesSync + mount
     ├── App.vue
     ├── route-mapping.js       ← the views table + mapRoute callback (one source of truth)
     ├── components/
@@ -63,6 +64,6 @@ Open <http://localhost:5173>. Edit a document in your mikser working folder; the
 
 ## What to take away
 
-The router is *one* call. The component dispatch is *one* table. The data primitive is *one* composable used by every view. The mental model is the same whether the app has 5 views or 50.
+The app constructs its own router. mikser slots catalog routes in alongside the hand-coded ones — same `route-mapping.js` source-of-truth pattern, but the app stays in charge of its own routing surface. The component dispatch is *one* table. The data primitive is *one* composable used by every view. The mental model is the same whether the app has 5 views or 50.
 
 If your project graduates from "all live, all the time" to "static deploy with editor previews," you don't rewrite — you reuse `route-mapping.js` (see [`../hybrid-ssg`](../hybrid-ssg)).
