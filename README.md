@@ -59,6 +59,22 @@ createApp(App)
     .mount('#app')
 ```
 
+### What `docId` is
+
+`docId` is the mikser entity id — every document, file, and asset in the catalog has one. For documents it's the **source file path** under the working folder, e.g. `/documents/en/articles/welcome.md`. It's stable across content edits (only a rename changes it) and globally unique within a mikser instance.
+
+The flow through the Quick Start above:
+
+```
+mapRoute receives a doc      → its doc.id is '/documents/en/articles/welcome.md'
+       passes doc.id as prop → ArticleView gets <ArticleView :doc-id="…welcome.md" />
+       useDocument(docId)    → opens a live subscription for { id: '…welcome.md' }
+       SDK filters by id     → server returns just that one document
+       editor edits the file → SSE event flows back → component re-renders
+```
+
+`docId` itself is just the prop name — call it `id`, `entityId`, or anything else; the only contract that matters is that it's the value of `doc.id`. Using `docId` consistently in this library's examples makes it instantly recognisable when someone scans your codebase.
+
 Documents declare their layout in front-matter — the router uses it to pick the view.
 
 ```yaml
