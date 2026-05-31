@@ -14,7 +14,7 @@ npm install mikser-io-sdk-vue mikser-io-sdk-api vue vue-router
 
 ## Quick start
 
-**main.js** — the `mapRoute` callback dispatches each document to the right view based on `meta.layout`. There's no one-size-fits-all "DocumentPage" — articles render through `ArticleView`, marketing pages through `PageView`, products through `ProductView`. That dispatch is the central job of `mapRoute`.
+**main.js** — the `mapRoute` callback dispatches each document to the view that matches its `meta.layout`. Different content types ship through different views — an article isn't a product isn't a landing page. The dispatch is the central job of `mapRoute`; each view is its own component with its own concerns.
 
 ```js
 // main.js
@@ -27,21 +27,25 @@ import App from './App.vue'
 const docs = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
     .entities('public')
 
-// One Vue view per content layout. Lazy-imported so each view ships
-// in its own chunk and only loads when its route is visited.
+// One Vue view per content layout. Each lazy-imports so it ships in
+// its own chunk — articles ≠ products ≠ landing pages, code-wise.
 const views = {
     article: () => import('./views/ArticleView.vue'),
-    page:    () => import('./views/PageView.vue'),
     product: () => import('./views/ProductView.vue'),
-    index:   () => import('./views/ArticleIndex.vue'),    // collection listing
+    landing: () => import('./views/LandingView.vue'),
+    page:    () => import('./views/PageView.vue'),   // fallback
 }
 
 const router = await createMikserRouter({
     client: docs,
+    staticRoutes: [
+        // Hand-coded routes — pages that aren't a single document
+        { path: '/articles', component: () => import('./views/ArticleIndex.vue') },
+    ],
     mapRoute: doc => ({
         path:      doc.meta.route,
         name:      doc.id,
-        component: views[doc.meta.layout] ?? views.page,  // dispatch + fallback
+        component: views[doc.meta.layout] ?? views.page,  // dispatch
         props:     route => ({ docId: doc.id, params: route.params }),
         meta:      { layout: doc.meta?.layout, title: doc.meta?.title },
     }),
@@ -55,55 +59,43 @@ createApp(App)
     .mount('#app')
 ```
 
-A document's front-matter just declares its layout:
+Documents declare their layout in front-matter — the router uses it to pick the view.
 
 ```yaml
 # documents/en/articles/welcome.md
 ---
-layout: article
+layout: article            # ← drives the dispatch to ArticleView.vue
 title:  Welcome
+author: Alice Park
 date:   2026-05-01
 route:  /en/articles/welcome
 published: true
-collection: articles
 ---
 
-Welcome to the site.
+# documents/en/products/desk-lamp.md
+---
+layout: product            # ← drives the dispatch to ProductView.vue
+title:  Desk Lamp
+price:  149
+image:  /assets/desk-lamp.jpg
+sku:    LMP-001
+route:  /en/products/desk-lamp
+in_stock: true
+---
+
+# documents/en/campaigns/spring-sale.md
+---
+layout: landing            # ← drives the dispatch to LandingView.vue
+title:  Spring Sale
+hero:   /assets/spring-hero.jpg
+cta:    { label: 'Shop now', href: '/products' }
+route:  /en/campaigns/spring-sale
+---
 ```
 
-→ router serves it through `ArticleView.vue`.
+Three documents, three different layouts → three structurally different views. None of them share template code; they all share the same data primitive (`useDocument`).
 
-**ArticleIndex.vue** — a collection listing using `useDocuments`. Lists every published article, sorted by date. Stays live: new articles appear without a refresh; deleted ones disappear.
-
-```vue
-<!-- views/ArticleIndex.vue -->
-<script setup>
-import { useDocuments } from 'mikser-io-sdk-vue'
-
-const { documents: articles, loading } = useDocuments({
-    filter: { 'meta.layout': 'article', 'meta.published': true },
-    sort:   { 'meta.date': -1 },
-    fields: ['id', 'meta.title', 'meta.date', 'meta.summary', 'meta.route'],
-    limit:  20,
-})
-</script>
-
-<template>
-    <h1>Articles</h1>
-    <p v-if="loading && !articles.length">Loading…</p>
-    <ul v-else>
-        <li v-for="a in articles" :key="a.id">
-            <router-link :to="a.meta.route">
-                <h2>{{ a.meta.title }}</h2>
-                <time>{{ a.meta.date }}</time>
-                <p>{{ a.meta.summary }}</p>
-            </router-link>
-        </li>
-    </ul>
-</template>
-```
-
-**ArticleView.vue** — a single article. Uses `useDocument` to fetch the one being viewed and re-render when an editor saves it.
+**ArticleView.vue** — article shape. Headline, byline, date, body.
 
 ```vue
 <!-- views/ArticleView.vue -->
@@ -111,42 +103,123 @@ const { documents: articles, loading } = useDocuments({
 import { useDocument } from 'mikser-io-sdk-vue'
 
 const props = defineProps({ docId: String })
-const { document, loading } = useDocument(() => props.docId)
+const { document: article, loading } = useDocument(() => props.docId)
 </script>
 
 <template>
-    <article v-if="document" class="article">
+    <article v-if="article" class="article">
         <header>
-            <h1>{{ document.meta?.title }}</h1>
-            <time>{{ document.meta?.date }}</time>
+            <h1>{{ article.meta?.title }}</h1>
+            <p class="byline">
+                By <strong>{{ article.meta?.author }}</strong>
+                · <time>{{ article.meta?.date }}</time>
+            </p>
         </header>
-        <div v-html="document.content" />
+        <div class="article-body" v-html="article.content" />
+        <footer>
+            <router-link to="/articles">← All articles</router-link>
+        </footer>
     </article>
     <p v-else-if="loading">Loading…</p>
-    <p v-else>Not found.</p>
 </template>
 ```
 
-**PageView.vue** — a static marketing page. Same composable, different shape.
+**ProductView.vue** — product shape. Image gallery, price, stock state, add-to-cart, description. Nothing in common with an article visually.
 
 ```vue
-<!-- views/PageView.vue -->
+<!-- views/ProductView.vue -->
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
 const props = defineProps({ docId: String })
-const { document } = useDocument(() => props.docId)
+const { document: product } = useDocument(() => props.docId)
+
+function addToCart() { /* hand off to the cart store */ }
 </script>
 
 <template>
-    <main v-if="document" class="page">
-        <h1>{{ document.meta?.title }}</h1>
-        <div v-html="document.content" />
+    <section v-if="product" class="product">
+        <figure class="product-image">
+            <img :src="product.meta?.image" :alt="product.meta?.title" />
+        </figure>
+        <div class="product-info">
+            <h1>{{ product.meta?.title }}</h1>
+            <p class="sku">SKU {{ product.meta?.sku }}</p>
+            <p class="price">€{{ product.meta?.price }}</p>
+            <p v-if="product.meta?.in_stock" class="stock in">In stock</p>
+            <p v-else class="stock out">Out of stock</p>
+            <button :disabled="!product.meta?.in_stock" @click="addToCart">
+                Add to cart
+            </button>
+            <div class="product-description" v-html="product.content" />
+        </div>
+    </section>
+</template>
+```
+
+**LandingView.vue** — landing-page shape. Full-bleed hero, CTA, body sections. Again, nothing in common with the other two structurally.
+
+```vue
+<!-- views/LandingView.vue -->
+<script setup>
+import { useDocument } from 'mikser-io-sdk-vue'
+
+const props = defineProps({ docId: String })
+const { document: page } = useDocument(() => props.docId)
+</script>
+
+<template>
+    <div v-if="page" class="landing">
+        <section class="hero" :style="{ backgroundImage: `url(${page.meta?.hero})` }">
+            <h1>{{ page.meta?.title }}</h1>
+            <a v-if="page.meta?.cta" :href="page.meta.cta.href" class="cta-button">
+                {{ page.meta.cta.label }}
+            </a>
+        </section>
+        <section class="content" v-html="page.content" />
+    </div>
+</template>
+```
+
+**ArticleIndex.vue** — a collection listing using `useDocuments`. Different shape entirely (a list, not a single document); same live-update contract underneath.
+
+```vue
+<!-- views/ArticleIndex.vue -->
+<script setup>
+import { useDocuments } from 'mikser-io-sdk-vue'
+
+const { documents: articles } = useDocuments({
+    filter: { 'meta.layout': 'article', 'meta.published': true },
+    sort:   { 'meta.date': -1 },
+    fields: ['id', 'meta.title', 'meta.date', 'meta.author', 'meta.summary', 'meta.route'],
+    limit:  20,
+})
+</script>
+
+<template>
+    <main>
+        <h1>Articles</h1>
+        <ul class="article-list">
+            <li v-for="a in articles" :key="a.id">
+                <router-link :to="a.meta.route">
+                    <h2>{{ a.meta.title }}</h2>
+                    <p class="byline">{{ a.meta.author }} · {{ a.meta.date }}</p>
+                    <p>{{ a.meta.summary }}</p>
+                </router-link>
+            </li>
+        </ul>
     </main>
 </template>
 ```
 
-The four compose under live updates. An editor publishes a new article in Decap → the watcher fires → `ArticleIndex` (anywhere it's rendered) gets a `create` event and the new card appears at the top of the list, no refresh. Click into it → `ArticleView` mounts via the `meta.layout: article` dispatch → its `useDocument` subscription opens → editor edits the body → the article re-renders in place. Switch to a marketing page → the same dispatch picks `PageView` instead; the same `useDocument` composable powers both, the shape of the rendering is the only difference.
+The five compose under live updates:
+
+- Editor publishes a new article in Decap → `ArticleIndex` receives the `create` event and the new card appears at the top of the list, no refresh.
+- Click it → router dispatches via `meta.layout: 'article'` → `ArticleView` mounts → its `useDocument` subscription opens → editor edits the body → the article re-renders in place.
+- Browse to `/en/products/desk-lamp` → router dispatches via `meta.layout: 'product'` → `ProductView` mounts with image, price, CTA — visibly nothing like an article.
+- Editor toggles `in_stock: false` in the front-matter → `ProductView` re-renders with the button disabled and the stock label flipped. Same composable. Different shape. Same live update.
+
+**`useDocument` is the data primitive** — every content view in the app uses it. The view's job is just to render a particular shape on top of that data. The router decides which shape via `meta.layout`. The dispatch is what makes this scale to dozens of content types without growing one giant `DocumentPage` component.
 
 That's the whole story. Everything below is detail.
 
