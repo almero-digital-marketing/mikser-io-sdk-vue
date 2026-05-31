@@ -1,40 +1,44 @@
 # Examples
 
-Three complete starter projects matching the [Scenarios](../README.md#scenarios--picking-the-right-shape-for-your-project) in the main README. Each is self-contained — its own `package.json`, its own Vite config, its own structure — and each shows the *minimum* needed to demonstrate the pattern, not a production-ready template.
+Three complete Vue starter projects plus one shared mikser content set that feeds them.
 
-| Example | When to pick it |
+| Folder | Role |
 |---|---|
+| **[`mikser-content/`](./mikser-content)** | **The shared mikser server.** Run this first — it provides the catalog that the three Vue apps consume. Pages, articles, products, a landing page, booking slots, and a pair of Bulgarian translations to demo the multilingual `useHref()` pattern. |
 | **[`pure-spa/`](./pure-spa)** | Editor / admin UIs, internal dashboards. No SEO. Fastest dev loop. |
 | **[`hybrid-ssg/`](./hybrid-ssg)** | Marketing sites, blogs, documentation. SEO required. Two builds from one content source. |
 | **[`islands/`](./islands)** | Content-heavy sites where mikser owns the HTML and Vue augments specific DOM nodes. |
 
-Each example has its own README explaining what it shows, how to point it at a mikser server, and what to take away.
+The three Vue apps are self-contained — their own `package.json`, their own Vite config, their own structure — and each shows the *minimum* needed to demonstrate the pattern, not a production-ready template. Each has its own README explaining what it shows and what to take away.
 
-## Common to all three
+## Run order
 
-All examples assume a running mikser server with the `api` plugin configured to expose a `public` endpoint:
+```bash
+# Terminal 1 — start the content server (--server --watch enabled)
+cd examples/mikser-content && npm install && npm run dev
+# → mikser listening on http://localhost:3001
 
-```js
-// mikser.config.js (on the server)
-export default {
-    plugins: ['documents', 'layouts', 'render-hbs', 'api'],
-    api: {
-        endpoints: {
-            public: {
-                query: e => e.type === 'document' && e.meta?.published,
-                operations: ['list', 'subscribe'],
-            },
-        },
-    },
-}
+# Terminal 2 — any of the three Vue apps
+cd examples/pure-spa && npm install && npm run dev
+# → http://localhost:5173
+
+# Terminal 3 — etc.
+cd examples/hybrid-ssg && npm install && npm run dev:editor
+cd examples/islands     && npm install && npm run dev
 ```
 
-The examples read the server URL from `VITE_MIKSER_URL` (and `MIKSER_URL` for build scripts). Set it in a `.env`:
+All four examples share the same content. Edit a `.md` file under `mikser-content/documents/` and every Vue app reacts in place — no refresh.
+
+## Common to all three Vue apps
+
+Each Vue example reads the server URL from `VITE_MIKSER_URL` (and `MIKSER_URL` for build scripts). The shared content server defaults to `:3001`, so a single `.env` per Vue example does the wiring:
 
 ```
 VITE_MIKSER_URL=http://localhost:3001
 MIKSER_URL=http://localhost:3001
 ```
+
+The `mikser-content/` project sets up the `public` api endpoint with `list` and `subscribe` operations — exactly what the Vue composables consume. See its [README](./mikser-content) for the full `mikser.config.js` and the front-matter conventions used across the catalog.
 
 ## How to read them
 

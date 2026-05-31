@@ -247,11 +247,12 @@ Three common shapes. Each makes a different trade between SEO, build complexity,
 >
 > Each scenario ships as a complete starter under [`examples/`](./examples) — Vite config, `package.json`, full source tree, its own README explaining how to run it. Clone and modify rather than translate the snippets below into project structure.
 >
-> | Scenario | Starter | What's in it |
-> |---|---|---|
-> | A — Pure SPA | **[`examples/pure-spa`](./examples/pure-spa)** | 12 files — Vite + Vue + `createMikserRouter` |
-> | B — Hybrid SSG + Live | **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** | 16 files — two Vite configs (public + editor), shared `route-mapping.js` |
-> | C — Islands | **[`examples/islands`](./examples/islands)** | 10 files — multi-entry Vite build, simulated mikser-rendered page |
+> | Folder | What's in it |
+> |---|---|
+> | **[`examples/mikser-content`](./examples/mikser-content)** | **The shared content server** — a standalone mikser project that supplies the catalog to the three Vue apps below. Start it first. |
+> | **[`examples/pure-spa`](./examples/pure-spa)** (scenario A) | Vite + Vue + `createMikserRouter` |
+> | **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** (scenario B) | Two Vite configs (public + editor), shared `route-mapping.js` |
+> | **[`examples/islands`](./examples/islands)** (scenario C) | Multi-entry Vite build, three Vue islands mounting onto mikser-rendered HTML |
 
 ### A) Pure SPA — runtime everything, live everywhere
 

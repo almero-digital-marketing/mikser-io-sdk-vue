@@ -43,10 +43,18 @@ pure-spa/
 
 ## Run it
 
+This example consumes the catalog from the [shared `mikser-content` server](../mikser-content). Start that first if you haven't already:
+
+```bash
+cd examples/mikser-content && npm install && npm run dev
+# → mikser listening on http://localhost:3001
+```
+
+Then in a separate terminal:
+
 ```bash
 cd examples/pure-spa
 npm install
-# Point at your running mikser server (with --server enabled)
 echo "VITE_MIKSER_URL=http://localhost:3001" > .env
 npm run dev
 ```

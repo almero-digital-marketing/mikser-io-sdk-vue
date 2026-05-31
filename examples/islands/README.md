@@ -58,13 +58,19 @@ The mikser-rendered HTML is the source of truth for content. The Vue bundles add
 
 ## Run it
 
+This example consumes the catalog from the [shared `mikser-content` server](../mikser-content). Start that first:
+
+```bash
+cd examples/mikser-content && npm install && npm run dev
+# → mikser listening on http://localhost:3001
+```
+
+Then in a separate terminal:
+
 ```bash
 cd examples/islands
 npm install
-
-# Point at your running mikser server
 echo "VITE_MIKSER_URL=http://localhost:3001" > .env
-
 npm run dev
 ```
 

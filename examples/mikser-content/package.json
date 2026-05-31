@@ -1,0 +1,16 @@
+{
+  "name": "example-mikser-content",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "mikser --server --watch",
+    "build": "mikser --clear",
+    "preview": "mikser --server"
+  },
+  "dependencies": {
+    "mikser-io": "^6.22.0",
+    "mikser-io-render-hbs": "^1.0.0",
+    "mikser-io-render-markdown": "^1.0.0"
+  }
+}
