@@ -1,4 +1,4 @@
-# Example B — Hybrid SSG + Live editor
+# Hybrid SSG + Live editor
 
 Two builds from one content source. The **public site** is statically rendered (one HTML file per route, deployed to a CDN, fully crawlable). The **editor app** is a live SPA mounted at `/admin/` — same view components, different mount and different router. The two stay in sync because both build from the same `route-mapping.js`.
 
@@ -23,7 +23,7 @@ This is the typical agency project shape for marketing sites, blogs, documentati
 ## Project structure
 
 ```
-b-hybrid-ssg/
+hybrid-ssg/
 ├── index.html                   ← public entry
 ├── admin.html                   ← editor entry
 ├── vite.config.js               ← public build (vite-ssg)
@@ -68,7 +68,7 @@ Change a dispatch rule (e.g. add `meta.layout: 'changelog'` → `ChangelogView`)
 ## Run it
 
 ```bash
-cd examples/b-hybrid-ssg
+cd examples/hybrid-ssg
 npm install
 
 # .env — same MIKSER_URL for both server-side and Vite

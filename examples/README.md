@@ -4,9 +4,9 @@ Three complete starter projects matching the [Scenarios](../README.md#scenarios-
 
 | Example | When to pick it |
 |---|---|
-| **[`a-pure-spa/`](./a-pure-spa)** | Editor / admin UIs, internal dashboards. No SEO. Fastest dev loop. |
-| **[`b-hybrid-ssg/`](./b-hybrid-ssg)** | Marketing sites, blogs, documentation. SEO required. Two builds from one content source. |
-| **[`c-islands/`](./c-islands)** | Content-heavy sites where mikser owns the HTML and Vue augments specific DOM nodes. |
+| **[`pure-spa/`](./pure-spa)** | Editor / admin UIs, internal dashboards. No SEO. Fastest dev loop. |
+| **[`hybrid-ssg/`](./hybrid-ssg)** | Marketing sites, blogs, documentation. SEO required. Two builds from one content source. |
+| **[`islands/`](./islands)** | Content-heavy sites where mikser owns the HTML and Vue augments specific DOM nodes. |
 
 Each example has its own README explaining what it shows, how to point it at a mikser server, and what to take away.
 
@@ -40,7 +40,7 @@ MIKSER_URL=http://localhost:3001
 
 Don't read them top-to-bottom. Each example is structured the same way so you can compare:
 
-| Concern | A | B | C |
+| Concern | `pure-spa` | `hybrid-ssg` | `islands` |
 |---|---|---|---|
 | Vite config | `vite.config.js` | `vite.config.js` (multi-entry) | `vite.config.js` (library mode) |
 | Entry HTML | `index.html` | `index.html` + `admin.html` | one HTML per island host |
@@ -49,4 +49,4 @@ Don't read them top-to-bottom. Each example is structured the same way so you ca
 | Component dispatch | shared `route-mapping.js` | shared `route-mapping.js` | n/a |
 | Live updates | yes (runtime) | yes (editor only) | yes (in islands) |
 
-The shared concepts move position; the underlying primitives (`useDocument`, `useDocuments`, `mapRoute`, `createMikserRouter`) stay the same. That's the point — once you know the SDK, picking between A / B / C is a build-tooling decision, not a different SDK.
+The shared concepts move position; the underlying primitives (`useDocument`, `useDocuments`, `mapRoute`, `createMikserRouter`) stay the same. That's the point — picking between the three is a build-tooling decision, not a different SDK.

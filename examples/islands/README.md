@@ -1,4 +1,4 @@
-# Example C — Mikser HTML + Vue islands
+# Mikser HTML + Vue islands
 
 Mikser produces the static HTML. Vue mounts on specific DOM nodes to add interactivity. No vue-router, no SPA shell. Each island is its own tiny bundle that runs only when its mount point exists on the page.
 
@@ -26,7 +26,7 @@ Best of both worlds for content-heavy sites with focused interactivity — searc
 ## Project structure
 
 ```
-c-islands/
+islands/
 ├── vite.config.js               ← multi-entry build (one entry per island)
 ├── package.json
 ├── public/
@@ -59,7 +59,7 @@ The mikser-rendered HTML is the source of truth for content. The Vue bundles add
 ## Run it
 
 ```bash
-cd examples/c-islands
+cd examples/islands
 npm install
 
 # Point at your running mikser server

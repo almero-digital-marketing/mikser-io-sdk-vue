@@ -1,4 +1,4 @@
-# Example A — Pure SPA
+# Pure SPA
 
 The simplest setup. The entire app fetches content at runtime and stays live as content changes. No build-time route generation. No two-entry-point dance. Just Vue + the SDK.
 
@@ -21,7 +21,7 @@ The simplest setup. The entire app fetches content at runtime and stays live as 
 ## Project structure
 
 ```
-a-pure-spa/
+pure-spa/
 ├── index.html
 ├── vite.config.js
 ├── package.json
@@ -44,7 +44,7 @@ a-pure-spa/
 ## Run it
 
 ```bash
-cd examples/a-pure-spa
+cd examples/pure-spa
 npm install
 # Point at your running mikser server (with --server enabled)
 echo "VITE_MIKSER_URL=http://localhost:3001" > .env
@@ -57,4 +57,4 @@ Open <http://localhost:5173>. Edit a document in your mikser working folder; the
 
 The router is *one* call. The component dispatch is *one* table. The data primitive is *one* composable used by every view. The mental model is the same whether the app has 5 views or 50.
 
-If your project graduates from "all live, all the time" to "static deploy with editor previews," you don't rewrite — you reuse `route-mapping.js` (see Example B).
+If your project graduates from "all live, all the time" to "static deploy with editor previews," you don't rewrite — you reuse `route-mapping.js` (see [`../hybrid-ssg`](../hybrid-ssg)).
