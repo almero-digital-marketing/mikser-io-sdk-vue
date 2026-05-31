@@ -44,24 +44,60 @@ createApp(App)
     .mount('#app')
 ```
 
+An article index page that lists posts as they're published, and a detail page that re-renders when an editor saves changes. Both live, both backed by mikser.
+
 ```vue
-<!-- views/DocumentPage.vue -->
+<!-- views/ArticleIndex.vue — uses useDocuments to list -->
+<script setup>
+import { useDocuments } from 'mikser-io-sdk-vue'
+
+// Reactive list — new articles appear without refresh; deleted ones disappear.
+const { documents: articles, loading } = useDocuments({
+    filter: { type: 'document', 'meta.collection': 'articles', 'meta.published': true },
+    sort:   { 'meta.date': -1 },
+    fields: ['id', 'meta.title', 'meta.date', 'meta.summary', 'meta.route'],
+    limit:  20,
+})
+</script>
+
+<template>
+    <h1>Articles</h1>
+    <p v-if="loading && !articles.length">Loading…</p>
+    <ul v-else>
+        <li v-for="a in articles" :key="a.id">
+            <router-link :to="a.meta.route">
+                <h2>{{ a.meta.title }}</h2>
+                <time>{{ a.meta.date }}</time>
+                <p>{{ a.meta.summary }}</p>
+            </router-link>
+        </li>
+    </ul>
+</template>
+```
+
+```vue
+<!-- views/DocumentPage.vue — uses useDocument to show one -->
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
 const props = defineProps({ docId: String })
+
+// Live single doc — re-renders when an editor saves the file.
 const { document, loading } = useDocument(() => props.docId)
 </script>
 
 <template>
     <article v-if="document">
         <h1>{{ document.meta?.title }}</h1>
+        <time v-if="document.meta?.date">{{ document.meta.date }}</time>
         <div v-html="document.content" />
     </article>
     <p v-else-if="loading">Loading…</p>
     <p v-else>Not found.</p>
 </template>
 ```
+
+The two compose: editor publishes a new article in Decap → the watcher fires → `ArticleIndex` gets a `create` event and the new card appears at the top of the list, all without a page refresh. Click into it → `DocumentPage` mounts → another `useDocument` subscription opens → when the editor edits the body, the article re-renders in place.
 
 That's the whole story. Everything below is detail.
 
