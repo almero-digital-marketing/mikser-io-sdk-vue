@@ -105,7 +105,7 @@ The `out/data/sitemap.json` snapshot is produced by the `data` plugin's `catalog
                     e.type === 'document' &&
                     e.meta?.published &&
                     e.meta?.component,
-                pick: ['id', 'destination', 'meta'],
+                pick: ['id', 'destination', 'meta.component', 'meta.route', 'meta.title'],
             },
         },
     },
