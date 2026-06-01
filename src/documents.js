@@ -143,3 +143,94 @@ export function useDocuments(query = {}, { client: clientArg } = {}) {
 
     return { documents, loading, error, refresh }
 }
+
+/**
+ * Live single-document lookup by URL route. Resolves the document
+ * whose `meta.route` matches the given path; stays subscribed for
+ * updates. Use this in the catch-all view of a SPA with dynamic
+ * routes — the right shape when the catalog is too large to enumerate
+ * via the snapshot/registered-routes approach.
+ *
+ * Each unique route resolves through the api plugin's per-query cache,
+ * so the first user pays an API round-trip and subsequent users get
+ * the cached file via the reverse proxy — effectively on-demand SSG
+ * with no extra config.
+ *
+ *   <!-- views/DocumentResolver.vue -->
+ *   <script setup>
+ *   import { useRoute } from 'vue-router'
+ *   import { useDocumentByRoute } from 'mikser-io-sdk-vue'
+ *   const route = useRoute()
+ *   const { document, loading, error } = useDocumentByRoute(() => route.path)
+ *   </script>
+ *
+ * `path` accepts a string, a Ref, or a getter — the lookup re-runs
+ * when the source changes.
+ *
+ * Extra options:
+ *   - `extraFilter`: merged into the filter (default `{ 'meta.published': true }`).
+ *     Pass `{}` to disable the published filter; pass other fields to add them.
+ *   - `client`: override the default entities client.
+ */
+export function useDocumentByRoute(path, {
+    client: clientArg,
+    extraFilter = { 'meta.published': true },
+} = {}) {
+    const client = clientArg ?? useMikserClient()
+
+    const document = shallowRef(null)
+    const loading  = ref(true)
+    const error    = ref(null)
+
+    let dispose = null
+
+    function start(currentPath) {
+        dispose?.()
+        dispose = null
+        document.value = null
+        error.value = null
+
+        if (currentPath == null || currentPath === '') {
+            loading.value = false
+            return
+        }
+
+        loading.value = true
+        const filter = { 'meta.route': currentPath, ...extraFilter }
+        dispose = client.live(
+            filter,
+            (items) => {
+                document.value = items[0] ?? null
+                loading.value = false
+            },
+            {
+                limit: 1,
+                onError: (err) => {
+                    error.value = err
+                    loading.value = false
+                },
+            },
+        )
+    }
+
+    if (isRef(path) || typeof path === 'function') {
+        watch(
+            () => unref(typeof path === 'function' ? path() : path),
+            (next) => start(next),
+            { immediate: true },
+        )
+    } else {
+        start(path)
+    }
+
+    if (getCurrentScope()) {
+        onScopeDispose(() => { dispose?.(); dispose = null })
+    }
+
+    function refresh() {
+        const currentPath = unref(typeof path === 'function' ? path() : path)
+        start(currentPath)
+    }
+
+    return { document, loading, error, refresh }
+}

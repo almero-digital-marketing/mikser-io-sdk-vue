@@ -447,6 +447,78 @@ project/
 
 ---
 
+### D) Dynamic routes — for catalogs too big to enumerate
+
+**When:** A content catalog past the ~5k–10k route mark where loading every route into a snapshot at boot stops making sense — large blogs, e-commerce catalogs, knowledge bases, document archives.
+
+**The idea:** Stop enumerating routes. Install **one** catch-all pattern in the router; resolve the document at navigation time via `useDocumentByRoute(path)`. The api plugin's per-query disk cache turns each unique route into an on-demand static file: the first user hits mikser, subsequent users get the cached response served by the reverse proxy. Effectively per-route ISR with no extra config.
+
+```js
+// main.js — note no initialUrl, no useMikserRoutes
+import { createApp } from 'vue'
+import { createRouter, createWebHistory } from 'vue-router'
+import { createClient } from 'mikser-io-sdk-api'
+import { createMikserPlugin } from 'mikser-io-sdk-vue'
+import App from './App.vue'
+
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+    .entities('public')
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes: [
+        // Hand-coded routes first
+        { path: '/',         name: 'home',     component: () => import('./views/Home.vue') },
+        { path: '/search',   name: 'search',   component: () => import('./views/Search.vue') },
+        // Single catch-all for everything content-backed
+        { path: '/:pathMatch(.*)*', name: 'doc', component: () => import('./views/DocumentResolver.vue') },
+    ],
+})
+
+createApp(App)
+    .use(createMikserPlugin({ client: documents }))
+    .use(router)
+    .mount('#app')
+```
+
+```vue
+<!-- views/DocumentResolver.vue -->
+<script setup>
+import { useRoute } from 'vue-router'
+import { useDocumentByRoute } from 'mikser-io-sdk-vue'
+import ArticleView from './ArticleView.vue'
+import ProductView from './ProductView.vue'
+import PageView    from './PageView.vue'
+import NotFound    from './NotFound.vue'
+
+const route = useRoute()
+const { document, loading } = useDocumentByRoute(() => route.path)
+
+const views = { article: ArticleView, product: ProductView, page: PageView }
+</script>
+
+<template>
+    <p v-if="loading">Loading…</p>
+    <component v-else-if="document" :is="views[document.meta?.component] ?? PageView" :entity-id="document.id" />
+    <NotFound v-else />
+</template>
+```
+
+**How the caching works.** `useDocumentByRoute` issues `GET /api/public/entities?meta.route=/en/about&meta.published=true&limit=1`. With `cache: true` on the public endpoint mikser writes that response to `out/api/public/entities/meta.route=%2Fen%2Fabout&meta.published=true&limit=1.json` as a side effect. The standard nginx failover config (see [mikser-io's caching docs](https://github.com/almero-digital-marketing/mikser-io/blob/main/documentation/caching.md)) serves the file directly on subsequent requests — mikser is only hit again after an invalidation.
+
+So the architecture is:
+- **First visitor to a route:** SDK → mikser → response served + written to disk
+- **Every subsequent visitor:** SDK → proxy serves the cached file (mikser idle)
+- **Catalog change:** entire cache directory cleared, re-warms on demand
+
+**Trade-offs:** First paint on a cold route pays one API roundtrip — slower than the snapshot model's pre-loaded routes, faster than a registered SPA's full-tree boot once the cache is warm. Doesn't scale down well to small catalogs (you're paying the catch-all-resolver tax for routes you could have enumerated for free) but scales up beautifully — works the same at 10k routes as at 10M.
+
+When to pick D over A: roughly when `data.catalog.sitemap` projection would emit more than ~1–2 MB. Past that the snapshot is dragging first paint down more than the resolver does.
+
+> **📦 No dedicated starter** — the diff from scenario A is small (drop `initialUrl`, replace registered routes with a catch-all, use `useDocumentByRoute`). The [`examples/pure-spa`](./examples/pure-spa) starter is the right place to start; the [Claude plugin's SPA recipe](https://github.com/almero-digital-marketing/mikser-io-claude-plugin) shows both modes side-by-side.
+
+---
+
 ### C) Mikser-rendered HTML + Vue islands
 
 **When:** Content-heavy sites where most pages are pure content (mikser renders them perfectly) but a few features need interactivity (search box, contact form, filters, live counts).
@@ -512,16 +584,17 @@ const { documents } = useDocuments(query)
 
 ### Picking between them
 
-| Question | A (SPA) | B (Hybrid SSG) | C (Islands) |
-|---|---|---|---|
-| Do you need SEO? | No | **Yes** | **Yes** |
-| Is most of the page interactive? | **Yes** | Maybe | No |
-| Is content mostly static? | No | Yes | **Yes** |
-| Editor + admin in same app? | **Yes** | Editor is the SPA half | Separate admin app |
-| Build complexity tolerance | Low | Medium | Low |
-| Mikser plugins (post-pdf, post-mjml) used? | No | Maybe | **Yes** |
+| Question | A (SPA) | B (Hybrid SSG) | C (Islands) | D (Dynamic SPA) |
+|---|---|---|---|---|
+| Do you need SEO? | No | **Yes** | **Yes** | No |
+| Is most of the page interactive? | **Yes** | Maybe | No | **Yes** |
+| Is content mostly static? | No | Yes | **Yes** | No |
+| Editor + admin in same app? | **Yes** | Editor is the SPA half | Separate admin app | **Yes** |
+| Build complexity tolerance | Low | Medium | Low | Low |
+| Mikser plugins (post-pdf, post-mjml) used? | No | Maybe | **Yes** | No |
+| Catalog size | < 5k routes | any | any | > 5k routes |
 
-**Rule of thumb for an agency client site:** start with **C** (islands) for the public site if the content is mostly static, **B** (hybrid SSG) if there's significant interactivity, **A** (pure SPA) only for the admin app. A and B/C often coexist in the same project — the admin is always SPA-shaped; the public face is the project-by-project decision.
+**Rule of thumb for an agency client site:** start with **C** (islands) for the public site if the content is mostly static, **B** (hybrid SSG) if there's significant interactivity, **A** (pure SPA) only for the admin app. Pick **D** when A would otherwise be your choice but the catalog is past the snapshot ceiling. A/D and B/C often coexist in the same project — the admin is always SPA-shaped; the public face is the project-by-project decision.
 
 ---
 
@@ -531,6 +604,7 @@ const { documents } = useDocuments(query)
 |---|---|---|
 | `client.list()` directly | Build-time, SSR (no live updates needed) | Component that needs to react to changes |
 | `useDocument()` / `useDocuments()` | Components in any scenario | Plain Node scripts (use the SDK directly) |
+| `useDocumentByRoute()` | Scenario D catch-all view — resolve the current path to a document | Scenarios A/B (you have the entity id; use `useDocument`) |
 | `live()` underneath both | Always — they wrap it | — |
 | `useMikserRoutes` | Scenarios A or B (editor app) — your router, mikser slots in | Scenario C (no router) |
 | `generateMikserRoutes` | Scenario B (build step) | Scenarios A or C |
