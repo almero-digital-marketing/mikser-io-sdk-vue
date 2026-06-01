@@ -48,14 +48,18 @@ export default {
     api: {
         endpoints: {
             // Full-content read endpoint. Used by useDocument(id) and
-            // anywhere else that needs the actual document body. Stays
-            // uncached on purpose: per-id fetches are small enough on
-            // their own, and a broad list call (no filter) would dump
-            // the whole catalog into a single cache file on disk. The
-            // sitemap endpoint below is the narrow, cached one.
+            // anywhere else that needs the actual document body —
+            // returns the whole entity, no projection. `cache: true`
+            // is for fail-safety: when mikser is down, a reverse proxy
+            // can still serve the cached per-id responses so a user
+            // reading a document keeps reading it. Caveat: broad list
+            // calls against this endpoint (no filter) would dump the
+            // whole catalog into a single cache file — use the sitemap
+            // endpoint below for routing-shaped queries.
             public: {
                 query: e => e.type === 'document' && e.meta?.published,
                 operations: ['list', 'subscribe'],
+                cache: true,
             },
             // Narrow router data — every doc with a meta.component.
             // Drives the SPA's useMikserRoutes; small payload, also
