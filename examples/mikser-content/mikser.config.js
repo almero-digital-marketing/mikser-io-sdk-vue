@@ -66,6 +66,18 @@ export default {
                     e.meta?.published &&
                     e.meta?.component,
                 operations: ['list', 'subscribe'],
+                // Server-enforced projection. Without this the cached
+                // file (cache: true) would contain every entity field —
+                // markdown body, internal uri, stamp, all meta fields —
+                // and be served publicly at a static URL. The router
+                // only needs these five.
+                fields: [
+                    'id',
+                    'destination',
+                    'meta.route',
+                    'meta.component',
+                    'meta.title',
+                ],
                 cache: true,
             },
         },
