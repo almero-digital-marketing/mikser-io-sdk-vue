@@ -334,6 +334,7 @@ Three common shapes. Each makes a different trade between SEO, build complexity,
 > |---|---|
 > | **[`examples/mikser-content`](./examples/mikser-content)** | **The shared content server** — a standalone mikser project that supplies the catalog to the three Vue apps below. Start it first. |
 > | **[`examples/pure-spa`](./examples/pure-spa)** (scenario A) | Vite + Vue + `useMikserRoutes` against your own router |
+> | **[`examples/dynamic-spa`](./examples/dynamic-spa)** (scenario D) | Same shape as `pure-spa` but with a catch-all + `useDocumentByRoute` |
 > | **[`examples/hybrid-ssg`](./examples/hybrid-ssg)** (scenario B) | Two Vite configs (public + editor), shared `route-mapping.js` |
 > | **[`examples/islands`](./examples/islands)** (scenario C) | Multi-entry Vite build, three Vue islands mounting onto mikser-rendered HTML |
 
@@ -578,7 +579,7 @@ So the architecture is:
 
 When to pick D over A: roughly when `data.catalog.sitemap` projection would emit more than ~1–2 MB. Past that the snapshot is dragging first paint down more than the resolver does.
 
-> **📦 No dedicated starter** — the diff from scenario A is small (drop `initialUrl`, replace registered routes with a catch-all, use `useDocumentByRoute`). The [`examples/pure-spa`](./examples/pure-spa) starter is the right place to start; the [Claude plugin's SPA recipe](https://github.com/almero-digital-marketing/mikser-io-claude-plugin) shows both modes side-by-side.
+> **📦 Full starter project:** **[`examples/dynamic-spa`](./examples/dynamic-spa)** — same shape as `pure-spa` but with the catch-all pattern wired up. Compare them side-by-side to see the diff.
 
 ---
 

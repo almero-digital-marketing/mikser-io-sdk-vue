@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pure SPA example</title>
+    <!-- Loading state for the ~100-500ms while main.js does `await
+         seeded` against the mikser catalog. Vue's .mount() replaces
+         #app's inner content, so this disappears the moment routes
+         are seeded and the app boots. -->
+    <style>
+        body { margin: 0 }
+        #app .loading {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; font: 14px system-ui, sans-serif; color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"><div class="loading">Loading…</div></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
