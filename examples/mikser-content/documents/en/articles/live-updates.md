@@ -1,5 +1,6 @@
 ---
 layout: article
+component: article
 title: SSE-driven live updates
 lang: en
 href: /articles/live-updates

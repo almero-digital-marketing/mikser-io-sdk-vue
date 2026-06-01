@@ -6,7 +6,8 @@ import { z } from 'zod'
 import { lang, route, date } from '../fields.config.js'
 
 export default z.object({
-    layout:           z.literal('slot'),
+    component:           z.literal('slot'),
+    layout:    z.string().optional(),
     title:            z.string().min(1),
     lang,
     route,

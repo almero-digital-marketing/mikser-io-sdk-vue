@@ -1,5 +1,6 @@
 ---
 layout: page
+component: page
 title: За нас
 lang: bg
 href: /about

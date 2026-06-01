@@ -10,7 +10,8 @@ const cta = z.object({
 })
 
 export default z.object({
-    layout:    z.literal('landing'),
+    component:    z.literal('landing'),
+    layout:    z.string().optional(),
     title:     z.string().min(1),
     lang,
     href,

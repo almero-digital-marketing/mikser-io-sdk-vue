@@ -1,5 +1,6 @@
 ---
 layout: article
+component: article
 title: Why mikser, not a headless CMS
 lang: en
 href: /articles/why-mikser

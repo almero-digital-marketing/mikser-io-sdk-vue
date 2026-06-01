@@ -1,5 +1,6 @@
 ---
 layout: slot
+component: slot
 title: Wednesday 09:00
 lang: en
 route: /en/slots/wed-09

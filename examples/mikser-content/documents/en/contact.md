@@ -1,5 +1,6 @@
 ---
 layout: page
+component: page
 title: Contact
 lang: en
 href: /contact

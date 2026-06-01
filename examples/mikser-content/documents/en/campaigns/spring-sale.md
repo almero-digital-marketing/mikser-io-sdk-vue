@@ -1,5 +1,6 @@
 ---
 layout: landing
+component: landing
 title: Spring sale
 lang: en
 href: /campaigns/spring-sale

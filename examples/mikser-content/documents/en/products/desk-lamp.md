@@ -1,5 +1,6 @@
 ---
 layout: product
+component: product
 title: Atelier desk lamp
 lang: en
 href: /products/desk-lamp

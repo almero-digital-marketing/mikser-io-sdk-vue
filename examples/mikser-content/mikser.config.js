@@ -38,16 +38,35 @@ export default {
         // example projects — see e.g. hybrid-ssg/src/router.js for how
         // it's imported.
         typesFile: 'entities.d.ts',
+        // Schemas match documents by meta.component, not meta.layout —
+        // layout stays free for mikser's SSG render pipeline (which
+        // the islands example uses). component is what the SPA's
+        // viewForComponent dispatch table keys off.
+        layoutKey: 'meta.component',
     },
 
     api: {
         endpoints: {
-            // Open endpoint — anything with meta.published: true is
-            // visible. Includes the `subscribe` operation so the
-            // useDocument / useDocuments composables can stay live.
+            // Full-content read endpoint. `cache: true` writes every
+            // GET /entities response to disk; a reverse proxy can
+            // fail over to the cache when mikser is down. See
+            // plugins.md "Per-query disk cache" in the mikser-io docs
+            // for the nginx config.
             public: {
                 query: e => e.type === 'document' && e.meta?.published,
                 operations: ['list', 'subscribe'],
+                cache: true,
+            },
+            // Narrow router data — every doc with a meta.component.
+            // Drives the SPA's useMikserRoutes; small payload, also
+            // cached to disk for failover.
+            sitemap: {
+                query: e =>
+                    e.type === 'document' &&
+                    e.meta?.published &&
+                    e.meta?.component,
+                operations: ['list', 'subscribe'],
+                cache: true,
             },
         },
     },

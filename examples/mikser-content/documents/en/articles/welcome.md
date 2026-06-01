@@ -1,5 +1,6 @@
 ---
 layout: article
+component: article
 title: Welcome to the journal
 lang: en
 href: /articles/welcome

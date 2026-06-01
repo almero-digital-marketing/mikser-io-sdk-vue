@@ -1,5 +1,6 @@
 ---
 layout: page
+component: page
 title: About us
 lang: en
 href: /about

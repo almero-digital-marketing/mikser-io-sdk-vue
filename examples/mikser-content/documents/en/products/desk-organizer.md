@@ -1,5 +1,6 @@
 ---
 layout: product
+component: product
 title: Walnut desk organizer
 lang: en
 href: /products/desk-organizer

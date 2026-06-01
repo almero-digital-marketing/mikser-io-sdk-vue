@@ -1,5 +1,6 @@
 ---
 layout: product
+component: product
 title: Hardback notebook
 lang: en
 href: /products/notebook

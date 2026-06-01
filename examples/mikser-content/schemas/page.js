@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { lang, href, route } from '../fields.config.js'
 
 export default z.object({
-    layout:    z.literal('page'),
+    component:    z.literal('page'),
+    layout:    z.string().optional(),
     title:     z.string().min(1),
     lang,
     href,

@@ -1,5 +1,6 @@
 ---
 layout: page
+component: page
 title: Добре дошли в Acme Co
 lang: bg
 href: /

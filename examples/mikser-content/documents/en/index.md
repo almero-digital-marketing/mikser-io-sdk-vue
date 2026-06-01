@@ -1,5 +1,6 @@
 ---
 layout: page
+component: page
 title: Welcome to Acme Co
 lang: en
 href: /
