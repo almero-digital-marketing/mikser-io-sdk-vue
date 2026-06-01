@@ -4,8 +4,12 @@
 //  - layouts/ holds a single page.html.hbs that includes island mount
 //    points — used only by the `islands` example; the `pure-spa` and
 //    `hybrid-ssg` examples consume the api, not the rendered HTML
-//  - The `api` plugin exposes a `public` endpoint with `subscribe` so
-//    `useDocument` / `useDocuments` / `live()` work in the Vue apps
+//  - The `api` plugin exposes a single `public` endpoint with subscribe
+//    so `useDocument` / `useDocuments` / `live()` work in the Vue apps
+//  - The `data` plugin writes `out/data/sitemap.json` — a fields-narrow
+//    snapshot the SDK loads via `initialUrl` for first-paint routing.
+//    No second API endpoint, no per-query disk cache for routes; just
+//    one static file served by mikser's built-in static handler.
 //  - cors is on by default (since 6.21.6) so the Vue dev servers on
 //    different ports can fetch + subscribe without extra config
 
@@ -18,14 +22,15 @@ export default {
         'plugin-schemas',
         'render-hbs',
         'render-markdown',
+        'data',
         'api',
     ],
 
     layouts: {
         // One generic page.html.hbs catches every document regardless of
-        // meta.layout. The Vue apps do their own per-layout dispatch
-        // via the meta.layout field; mikser's rendering is only
-        // consumed by scenario C (islands).
+        // meta.layout. The Vue apps do their own per-component dispatch
+        // via meta.component; mikser's rendering is only consumed by
+        // scenario C (islands).
         autoLayouts: true,
     },
 
@@ -45,43 +50,39 @@ export default {
         layoutKey: 'meta.component',
     },
 
-    api: {
-        endpoints: {
-            // Full-content read endpoint. Used by useDocument(id) and
-            // anywhere else that needs the actual document body —
-            // returns the whole entity, no projection. `cache: true`
-            // is for fail-safety: when mikser is down, a reverse proxy
-            // can still serve the cached per-id responses so a user
-            // reading a document keeps reading it. Caveat: broad list
-            // calls against this endpoint (no filter) would dump the
-            // whole catalog into a single cache file — use the sitemap
-            // endpoint below for routing-shaped queries.
-            public: {
-                query: e => e.type === 'document' && e.meta?.published,
-                operations: ['list', 'subscribe'],
-                cache: true,
-            },
-            // Narrow router data — every doc with a meta.component.
-            // Drives the SPA's useMikserRoutes; small payload, also
-            // cached to disk for failover.
+    data: {
+        // Catalog snapshots are written at finalize — one JSON file per
+        // catalog name under out/data/. Served as a static file by
+        // mikser's built-in static handler, so it's CDN-cacheable and
+        // survives the engine being down.
+        catalog: {
+            // out/data/sitemap.json — every published document that
+            // declares a meta.component, projected to just the fields
+            // the router needs. Consumed by the SDK via
+            //   entities('public', { initialUrl: '/data/sitemap.json' })
+            // which unwraps the data-plugin envelope automatically.
             sitemap: {
                 query: e =>
                     e.type === 'document' &&
                     e.meta?.published &&
                     e.meta?.component,
+                pick: ['id', 'destination', 'meta'],
+            },
+        },
+    },
+
+    api: {
+        endpoints: {
+            // Full-content read endpoint. Used by useDocument(id) and
+            // anywhere else that needs the actual document body —
+            // returns the whole entity, no projection. `cache: true` is
+            // for fail-safety: when mikser is down a reverse proxy can
+            // still serve the cached per-id responses so a user reading
+            // a document keeps reading it. Initial route data comes from
+            // the static sitemap.json (above), not from this endpoint.
+            public: {
+                query: e => e.type === 'document' && e.meta?.published,
                 operations: ['list', 'subscribe'],
-                // Server-enforced projection. Without this the cached
-                // file (cache: true) would contain every entity field —
-                // markdown body, internal uri, stamp, all meta fields —
-                // and be served publicly at a static URL. The router
-                // only needs these five.
-                fields: [
-                    'id',
-                    'destination',
-                    'meta.route',
-                    'meta.component',
-                    'meta.title',
-                ],
                 cache: true,
             },
         },

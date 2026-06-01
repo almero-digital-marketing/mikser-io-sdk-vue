@@ -5,15 +5,14 @@ import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import { mapRoute } from './route-mapping.js'
 import App from './App.vue'
 
-// Two clients, one root:
-//   - documents → full content fetch (used by useDocument inside views)
-//   - sitemap   → narrow router data. The server-side `cache: true`
-//                 means every GET response is written to disk; a
-//                 reverse proxy can fail over to the cached file when
-//                 mikser is down — transparent to the SDK.
-const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-const documents = root.entities('public')
-const sitemap = root.entities('sitemap')
+// One client, one endpoint. initialUrl points at the static snapshot
+// the data plugin writes (out/data/sitemap.json) — that's the fast
+// first-paint path for routes. After the snapshot lands the SDK opens
+// a live SSE subscribe on the same /public endpoint for incremental
+// updates. No second API endpoint, no second cache file — just one
+// CDN-cacheable static file plus the existing live channel.
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+    .entities('public', { initialUrl: '/data/sitemap.json' })
 
 // The app owns the router. Static routes are hand-coded; mikser slots
 // catalog routes in alongside via useMikserRoutes below.
@@ -29,14 +28,11 @@ const router = createRouter({
     ],
 })
 
-// Wire mikser into the same router using the sitemap client. seeded
-// resolves when the initial list lands; await it before mounting so
+// Wire mikser into the same router. seeded resolves when the initial
+// snapshot (or list fallback) lands; await it before mounting so
 // first-paint navigation hits a registered route instead of falling
 // through to NotFound and re-navigating once routes appear.
-const { seeded } = useMikserRoutes(router, {
-    client: sitemap,
-    mapRoute,
-})
+const { seeded } = useMikserRoutes(router, { mapRoute })
 await seeded
 
 createApp(App)

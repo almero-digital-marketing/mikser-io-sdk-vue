@@ -43,15 +43,12 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-// Two clients, one root:
-//   - documents → full content fetch (used by useDocument inside views)
-//   - sitemap   → narrow router data. The sitemap endpoint applies a
-//                 server-enforced fields projection, and `cache: true`
-//                 writes each response to disk so a reverse proxy can
-//                 fail over to the cached file if mikser is down.
-const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-const documents = root.entities('public')
-const sitemap   = root.entities('sitemap')
+// One client, one endpoint. `initialUrl` points at the static snapshot
+// the data plugin writes (out/data/sitemap.json) — fast first paint
+// from a CDN-cacheable file, then SSE deltas keep it current. No second
+// API endpoint to configure.
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+    .entities('public', { initialUrl: '/data/sitemap.json' })
 
 // One Vue view per content component. Each lazy-imports so it ships in
 // its own chunk — articles ≠ products ≠ landing pages, code-wise.
@@ -73,11 +70,10 @@ const router = createRouter({
 })
 
 // Plug mikser into the same router. seeded resolves when the initial
-// catalog list has landed and the matching addRoute calls have run.
-// useMikserRoutes uses the sitemap client — narrow payload, never pulls
-// markdown bodies into the router.
+// snapshot (or list fallback) lands. Await it before mounting so
+// first-paint navigation hits a registered route instead of falling
+// through to NotFound.
 const { seeded } = useMikserRoutes(router, {
-    client: sitemap,
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,
@@ -86,13 +82,15 @@ const { seeded } = useMikserRoutes(router, {
         meta:      { component: document.meta?.component, title: document.meta?.title },
     }),
 })
-await seeded   // first-paint navigation hits a registered route, not 404 → re-nav
+await seeded
 
 createApp(App)
-    .use(createMikserPlugin({ client: documents }))   // useDocument hits public
+    .use(createMikserPlugin({ client: documents }))
     .use(router)
     .mount('#app')
 ```
+
+The `out/data/sitemap.json` snapshot is produced by the [data plugin's `catalog`](https://github.com/almero-digital-marketing/mikser-io) entry — one filter, one `pick`. See [`examples/mikser-content/mikser.config.js`](./examples/mikser-content/mikser.config.js).
 
 The pattern is **augment, don't own**. You write the app you'd write anyway — your own routes, your own router setup, your own catch-all. Mikser slots its routes in alongside yours and keeps them current as content changes.
 
@@ -320,9 +318,8 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-const documents = root.entities('public')
-const sitemap   = root.entities('sitemap')
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+    .entities('public', { initialUrl: '/data/sitemap.json' })
 
 const router = createRouter({
     history: createWebHistory(),
@@ -332,9 +329,8 @@ const router = createRouter({
     ],
 })
 
-// seeded resolves when the initial catalog list has landed.
+// seeded resolves when the initial snapshot (or list fallback) lands.
 const { seeded } = useMikserRoutes(router, {
-    client:   sitemap,                                // narrow, cached, fail-safe
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,
@@ -580,9 +576,11 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-const documents = root.entities('public')    // full content for useDocument
-const sitemap   = root.entities('sitemap')   // narrow router data
+// One client. `initialUrl` pulls the narrow snapshot the data plugin
+// writes — fast first paint, CDN-cacheable — then live SSE keeps it
+// current.
+const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+    .entities('public', { initialUrl: '/data/sitemap.json' })
 
 // Your router. Your routes. Your guards.
 const router = createRouter({
@@ -595,11 +593,7 @@ const router = createRouter({
 })
 
 // Plug mikser into the same router. Await seeded before mount.
-// Pass the sitemap client — it ships the narrow projection (just the
-// fields the router needs) and lets a reverse proxy fail over to the
-// cached file when mikser is unreachable.
 const { seeded } = useMikserRoutes(router, {
-    client: sitemap,
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,           // required — used as diff key
