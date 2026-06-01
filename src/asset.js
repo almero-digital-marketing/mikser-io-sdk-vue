@@ -1,8 +1,7 @@
-// Asset / image reference resolution — same provide/use pattern as
-// href, scoped to asset entities. Useful when assets carry metadata
-// the template needs (dimensions, srcset, alt) and you want to look
-// them up by reference rather than re-fetching per render.
-import { shallowRef, inject, provide, getCurrentScope, onScopeDispose } from 'vue'
+// Asset / image reference resolution — Vue-reactive shell around
+// sdk-api's pure createAssetIndex.
+import { shallowRef, inject, provide, computed, getCurrentScope, onScopeDispose } from 'vue'
+import { createAssetIndex } from 'mikser-io-sdk-api'
 import { useMikserClient } from './plugin.js'
 
 export const ASSET_INDEX = Symbol('mikser-io.asset-index')
@@ -20,30 +19,19 @@ export function provideAssetIndex({
     if (!client) {
         client = useMikserClient()
     }
-    const index = shallowRef({})
+    const assets = shallowRef([])
 
     const dispose = client.live(
         filter,
-        (assets) => {
-            const next = {}
-            for (const a of assets) {
-                next[a.id] = {
-                    url:    a.meta?.destination ?? a.meta?.url ?? a.id,
-                    width:  a.meta?.width,
-                    height: a.meta?.height,
-                    srcset: a.meta?.srcset,
-                    alt:    a.meta?.alt,
-                    meta:   a.meta,
-                }
-            }
-            index.value = next
-        },
+        (docs) => { assets.value = docs },
         { fields: ['id', 'meta'] },
     )
 
     if (getCurrentScope()) {
         onScopeDispose(() => dispose?.())
     }
+
+    const index = computed(() => createAssetIndex(assets.value))
 
     provide(ASSET_INDEX, index)
     return index
@@ -70,19 +58,11 @@ export function useAsset() {
     }
 
     function asset(ref) {
-        return index.value[ref] ?? null
+        return index.value.asset(ref)
     }
 
     function image(ref) {
-        const a = index.value[ref]
-        if (!a) return null
-        return {
-            src:    a.url,
-            width:  a.width,
-            height: a.height,
-            srcset: a.srcset,
-            alt:    a.alt,
-        }
+        return index.value.image(ref)
     }
 
     return { asset, image, index }
