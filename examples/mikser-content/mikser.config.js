@@ -47,15 +47,15 @@ export default {
 
     api: {
         endpoints: {
-            // Full-content read endpoint. `cache: true` writes every
-            // GET /entities response to disk; a reverse proxy can
-            // fail over to the cache when mikser is down. See
-            // plugins.md "Per-query disk cache" in the mikser-io docs
-            // for the nginx config.
+            // Full-content read endpoint. Used by useDocument(id) and
+            // anywhere else that needs the actual document body. Stays
+            // uncached on purpose: per-id fetches are small enough on
+            // their own, and a broad list call (no filter) would dump
+            // the whole catalog into a single cache file on disk. The
+            // sitemap endpoint below is the narrow, cached one.
             public: {
                 query: e => e.type === 'document' && e.meta?.published,
                 operations: ['list', 'subscribe'],
-                cache: true,
             },
             // Narrow router data — every doc with a meta.component.
             // Drives the SPA's useMikserRoutes; small payload, also
