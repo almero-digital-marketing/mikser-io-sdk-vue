@@ -43,12 +43,12 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-// One client, one endpoint. `initialUrl` points at the static snapshot
+// One client, one endpoint. `data.catalog` points at the static snapshot
 // the data plugin writes (out/data/sitemap.json) — fast first paint
 // from a CDN-cacheable file, then SSE deltas keep it current. No second
 // API endpoint to configure.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { initialUrl: '/data/sitemap.json' })
+    .entities('public', { data: { catalog: 'sitemap' } })
 
 // One Vue view per content component. Each lazy-imports so it ships in
 // its own chunk — articles ≠ products ≠ landing pages, code-wise.
@@ -123,7 +123,7 @@ The `out/data/sitemap.json` snapshot is produced by the `data` plugin's `catalog
 
 The `data` plugin runs at finalize, writes one file per catalog entry under `out/data/`, served as a static asset by mikser's built-in handler. The `pick` projection is enforced server-side so the snapshot stays small. `query` lines up 1:1 with the `live()` filter the SDK opens after first paint — initial state matches what SSE will send.
 
-See [mikser-io-sdk-api → `initialUrl`](https://github.com/almero-digital-marketing/mikser-io-sdk-api#initialurl--pair-with-the-data-plugin-for-fast-first-paint) for the client side, and [`examples/mikser-content/mikser.config.js`](./examples/mikser-content/mikser.config.js) for the full config in context.
+See [mikser-io-sdk-api → `data.catalog`](https://github.com/almero-digital-marketing/mikser-io-sdk-api#initialurl--pair-with-the-data-plugin-for-fast-first-paint) for the client side, and [`examples/mikser-content/mikser.config.js`](./examples/mikser-content/mikser.config.js) for the full config in context.
 
 The pattern is **augment, don't own**. You write the app you'd write anyway — your own routes, your own router setup, your own catch-all. Mikser slots its routes in alongside yours and keeps them current as content changes.
 
@@ -353,7 +353,7 @@ import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { initialUrl: '/data/sitemap.json' })
+    .entities('public', { data: { catalog: 'sitemap' } })
 
 const router = createRouter({
     history: createWebHistory(),
@@ -518,7 +518,7 @@ const { documents } = useDocuments(query)
 **The idea:** Stop enumerating routes. Install **one** catch-all pattern in the router; resolve the document at navigation time via `useDocumentByRoute(path)`. The api plugin's per-query disk cache turns each unique route into an on-demand static file: the first user hits mikser, subsequent users get the cached response served by the reverse proxy. Effectively per-route ISR with no extra config.
 
 ```js
-// main.js — note no initialUrl, no useMikserRoutes
+// main.js — note no data.catalog, no useMikserRoutes
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { createClient } from 'mikser-io-sdk-api'
@@ -684,11 +684,11 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-// One client. `initialUrl` pulls the narrow snapshot the data plugin
+// One client. `data.catalog` pulls the narrow snapshot the data plugin
 // writes — fast first paint, CDN-cacheable — then live SSE keeps it
 // current.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { initialUrl: '/data/sitemap.json' })
+    .entities('public', { data: { catalog: 'sitemap' } })
 
 // Your router. Your routes. Your guards.
 const router = createRouter({

@@ -14,12 +14,12 @@ import { generateMikserRoutes } from 'mikser-io-sdk-vue'
 const here = dirname(fileURLToPath(import.meta.url))
 
 // Build-time uses the same single client as the runtime editor.
-// initialUrl points at the static snapshot the data plugin writes
+// data.catalog points at the static snapshot the data plugin writes
 // (out/data/sitemap.json) — generateMikserRoutes consults it before
 // falling back to a fresh list() call, so the build doesn't drag full
 // markdown bodies through just to enumerate routes.
 const client = createClient({ baseUrl: process.env.MIKSER_URL ?? 'http://localhost:3001' })
-    .entities('public', { initialUrl: '/data/sitemap.json' })
+    .entities('public', { data: { catalog: 'sitemap' } })
 
 // Use the SAME mapRoute as the runtime router — one source of truth.
 // We strip the component function before serializing (functions don't

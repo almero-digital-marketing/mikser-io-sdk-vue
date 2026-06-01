@@ -7,7 +7,7 @@
 //  - The `api` plugin exposes a single `public` endpoint with subscribe
 //    so `useDocument` / `useDocuments` / `live()` work in the Vue apps
 //  - The `data` plugin writes `out/data/sitemap.json` — a fields-narrow
-//    snapshot the SDK loads via `initialUrl` for first-paint routing.
+//    snapshot the SDK loads via `data.catalog` for first-paint routing.
 //    No second API endpoint, no per-query disk cache for routes; just
 //    one static file served by mikser's built-in static handler.
 //  - cors is on by default (since 6.21.6) so the Vue dev servers on
@@ -59,7 +59,7 @@ export default {
             // out/data/sitemap.json — every published document that
             // declares a meta.component, projected to just the fields
             // the router needs. Consumed by the SDK via
-            //   entities('public', { initialUrl: '/data/sitemap.json' })
+            //   entities('public', { data: { catalog: 'sitemap' } })
             // which unwraps the data-plugin envelope automatically.
             sitemap: {
                 query: e =>

@@ -13,7 +13,7 @@ For smaller catalogs (< 5k routes), [`examples/pure-spa`](../pure-spa) is the ri
 
 - **One catch-all route.** `main.js` registers exactly one mikser-backed route: `path: '/:pathMatch(.*)*' → DocumentResolver.vue`. Hand-coded routes (`/`) come before it so they shadow the catch-all where they should.
 - **`useDocumentByRoute(() => route.path)`** in `DocumentResolver.vue` — issues `GET /api/public/entities?meta.route=<currentPath>` and dispatches the matched document to the right view (`ArticleView` / `ProductView` / `LandingView` / `PageView`).
-- **No `initialUrl`, no `useMikserRoutes`, no `data.catalog.sitemap` block.** The catalog is the route table — there's no separate index to maintain or load.
+- **No `data.catalog`, no `useMikserRoutes`, no `data.catalog.sitemap` block.** The catalog is the route table — there's no separate index to maintain or load.
 - **Live updates via SSE.** `useDocumentByRoute` wraps `client.live()` underneath, so an edit to the currently-displayed document updates the page without a refresh — same DX as pure-spa, just at scale.
 - **`useDocuments` still works for known-shape queries** — the nav menu and Home's "Latest articles" list use it, with `fields` projections to keep the responses narrow.
 
@@ -77,7 +77,7 @@ If you're already familiar with [`examples/pure-spa`](../pure-spa), here's what 
 
 | | pure-spa (Scenario A) | dynamic-spa (Scenario D) |
 |---|---|---|
-| Client setup | `entities('public', { initialUrl: '/data/sitemap.json' })` | `entities('public')` — no snapshot |
+| Client setup | `entities('public', { data: { catalog: 'sitemap' } })` | `entities('public')` — no snapshot |
 | Router | `useMikserRoutes(router, { mapRoute })` + `await seeded` | One catch-all route, nothing to await |
 | `route-mapping.js` | Has it, maps catalog entries to vue-router route descriptors | Doesn't exist — dispatch happens inline in DocumentResolver |
 | `mikser.config.js` | Has `data.catalog.sitemap` block | Can drop the block — no snapshot consumed |

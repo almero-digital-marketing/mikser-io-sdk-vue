@@ -5,14 +5,14 @@ import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import { mapRoute } from './route-mapping.js'
 import App from './App.vue'
 
-// One client, one endpoint. initialUrl points at the static snapshot
+// One client, one endpoint. data.catalog points at the static snapshot
 // the data plugin writes (out/data/sitemap.json) — that's the fast
 // first-paint path for routes. After the snapshot lands the SDK opens
 // a live SSE subscribe on the same /public endpoint for incremental
 // updates. No second API endpoint, no second cache file — just one
 // CDN-cacheable static file plus the existing live channel.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { initialUrl: '/data/sitemap.json' })
+    .entities('public', { data: { catalog: 'sitemap' } })
 
 // The app owns the router. Static routes are hand-coded; mikser slots
 // catalog routes in alongside via useMikserRoutes below.
