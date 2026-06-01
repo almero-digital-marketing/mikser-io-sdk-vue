@@ -33,7 +33,7 @@ npm install mikser-io-sdk-vue mikser-io-sdk-api vue vue-router
 
 ## Quick start
 
-**The app owns the router.** Mikser slots catalog-driven routes in alongside your hand-coded ones via `useMikserRoutes`. The `mapRoute` callback dispatches each document to the view that matches its `meta.layout` — different content types ship through different views (an article isn't a product isn't a landing page).
+**The app owns the router.** Mikser slots catalog-driven routes in alongside your hand-coded ones via `useMikserRoutes`. The `mapRoute` callback dispatches each document to the view that matches its `meta.component` — different content types ship through different views (an article isn't a product isn't a landing page). Dispatch is on `meta.component`, not `meta.layout`; `layout` stays reserved for mikser's SSG render pipeline so the two never collide.
 
 ```js
 // main.js
@@ -43,10 +43,17 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public')
+// Two clients, one root:
+//   - documents → full content fetch (used by useDocument inside views)
+//   - sitemap   → narrow router data. The sitemap endpoint applies a
+//                 server-enforced fields projection, and `cache: true`
+//                 writes each response to disk so a reverse proxy can
+//                 fail over to the cached file if mikser is down.
+const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = root.entities('public')
+const sitemap   = root.entities('sitemap')
 
-// One Vue view per content layout. Each lazy-imports so it ships in
+// One Vue view per content component. Each lazy-imports so it ships in
 // its own chunk — articles ≠ products ≠ landing pages, code-wise.
 const views = {
     article: () => import('./views/ArticleView.vue'),
@@ -67,20 +74,22 @@ const router = createRouter({
 
 // Plug mikser into the same router. seeded resolves when the initial
 // catalog list has landed and the matching addRoute calls have run.
+// useMikserRoutes uses the sitemap client — narrow payload, never pulls
+// markdown bodies into the router.
 const { seeded } = useMikserRoutes(router, {
-    client: documents,
+    client: sitemap,
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,
-        component: views[document.meta.layout] ?? views.page,  // dispatch
+        component: views[document.meta.component] ?? views.page,  // dispatch
         props:     route => ({ entityId: document.id, params: route.params }),
-        meta:      { layout: document.meta?.layout, title: document.meta?.title },
+        meta:      { component: document.meta?.component, title: document.meta?.title },
     }),
 })
 await seeded   // first-paint navigation hits a registered route, not 404 → re-nav
 
 createApp(App)
-    .use(createMikserPlugin({ client: documents }))
+    .use(createMikserPlugin({ client: documents }))   // useDocument hits public
     .use(router)
     .mount('#app')
 ```
@@ -118,12 +127,12 @@ mapRoute receives a document   → its document.id is '/documents/en/articles/we
 
 The `entityId` prop name follows mikser's vocabulary — documents, files, assets are all *entities*, and `entityId` is what the catalog calls their identifier. The SDK doesn't reserve the name; you can call the prop anything, but staying with `entityId` makes a Vue codebase recognisable to anyone who already knows mikser's terms.
 
-Documents declare their layout in front-matter — the router uses it to pick the view.
+Documents declare their component in front-matter — the router uses it to pick the view. (`layout` stays separate, reserved for mikser's SSG render pipeline.)
 
 ```yaml
 # documents/en/articles/welcome.md
 ---
-layout: article            # ← drives the dispatch to ArticleView.vue
+component: article         # ← drives the dispatch to ArticleView.vue
 title:  Welcome
 author: Alice Park
 date:   2026-05-01
@@ -133,7 +142,7 @@ published: true
 
 # documents/en/products/desk-lamp.md
 ---
-layout: product            # ← drives the dispatch to ProductView.vue
+component: product         # ← drives the dispatch to ProductView.vue
 title:  Desk Lamp
 price:  149
 image:  /assets/desk-lamp.jpg
@@ -144,7 +153,7 @@ in_stock: true
 
 # documents/en/campaigns/spring-sale.md
 ---
-layout: landing            # ← drives the dispatch to LandingView.vue
+component: landing         # ← drives the dispatch to LandingView.vue
 title:  Spring Sale
 hero:   /assets/spring-hero.jpg
 cta:    { label: 'Shop now', href: '/products' }
@@ -152,7 +161,7 @@ route:  /en/campaigns/spring-sale
 ---
 ```
 
-Three documents, three different layouts → three structurally different views. None of them share template code; they all share the same data primitive (`useDocument`).
+Three documents, three different components → three structurally different views. None of them share template code; they all share the same data primitive (`useDocument`).
 
 **ArticleView.vue** — article shape. Headline, byline, date, body.
 
@@ -248,7 +257,7 @@ const { document: page } = useDocument(() => props.entityId)
 import { useDocuments } from 'mikser-io-sdk-vue'
 
 const { documents: articles } = useDocuments({
-    filter: { 'meta.layout': 'article', 'meta.published': true },
+    filter: { 'meta.component': 'article', 'meta.published': true },
     sort:   { 'meta.date': -1 },
     fields: ['id', 'meta.title', 'meta.date', 'meta.author', 'meta.summary', 'meta.route'],
     limit:  20,
@@ -274,11 +283,11 @@ const { documents: articles } = useDocuments({
 The five compose under live updates:
 
 - Editor publishes a new article in Decap → `ArticleIndex` receives the `create` event and the new card appears at the top of the list, no refresh.
-- Click it → router dispatches via `meta.layout: 'article'` → `ArticleView` mounts → its `useDocument` subscription opens → editor edits the body → the article re-renders in place.
-- Browse to `/en/products/desk-lamp` → router dispatches via `meta.layout: 'product'` → `ProductView` mounts with image, price, CTA — visibly nothing like an article.
+- Click it → router dispatches via `meta.component: 'article'` → `ArticleView` mounts → its `useDocument` subscription opens → editor edits the body → the article re-renders in place.
+- Browse to `/en/products/desk-lamp` → router dispatches via `meta.component: 'product'` → `ProductView` mounts with image, price, CTA — visibly nothing like an article.
 - Editor toggles `in_stock: false` in the front-matter → `ProductView` re-renders with the button disabled and the stock label flipped. Same composable. Different shape. Same live update.
 
-**`useDocument` is the data primitive** — every content view in the app uses it. The view's job is just to render a particular shape on top of that data. The router decides which shape via `meta.layout`. The dispatch is what makes this scale to dozens of content types without growing one giant `DocumentPage` component.
+**`useDocument` is the data primitive** — every content view in the app uses it. The view's job is just to render a particular shape on top of that data. The router decides which shape via `meta.component`. The dispatch is what makes this scale to dozens of content types without growing one giant `DocumentPage` component.
 
 That's the whole story. Everything below is detail.
 
@@ -311,8 +320,9 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public')
+const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = root.entities('public')
+const sitemap   = root.entities('sitemap')
 
 const router = createRouter({
     history: createWebHistory(),
@@ -324,13 +334,13 @@ const router = createRouter({
 
 // seeded resolves when the initial catalog list has landed.
 const { seeded } = useMikserRoutes(router, {
-    client:   documents,
+    client:   sitemap,                                // narrow, cached, fail-safe
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,
         component: () => import('./views/DocumentPage.vue'),
         props:     route => ({ entityId: document.id, params: route.params }),
-        meta:      { layout: document.meta?.layout },
+        meta:      { component: document.meta?.component },
     }),
 })
 await seeded
@@ -570,8 +580,9 @@ import { createClient } from 'mikser-io-sdk-api'
 import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
-const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public')
+const root = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
+const documents = root.entities('public')    // full content for useDocument
+const sitemap   = root.entities('sitemap')   // narrow router data
 
 // Your router. Your routes. Your guards.
 const router = createRouter({
@@ -584,8 +595,11 @@ const router = createRouter({
 })
 
 // Plug mikser into the same router. Await seeded before mount.
+// Pass the sitemap client — it ships the narrow projection (just the
+// fields the router needs) and lets a reverse proxy fail over to the
+// cached file when mikser is unreachable.
 const { seeded } = useMikserRoutes(router, {
-    client: documents,
+    client: sitemap,
     mapRoute: document => ({
         path:      document.meta.route,
         name:      document.id,           // required — used as diff key
