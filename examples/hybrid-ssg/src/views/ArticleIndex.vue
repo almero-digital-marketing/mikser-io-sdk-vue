@@ -2,7 +2,7 @@
 import { useDocuments } from 'mikser-io-sdk-vue'
 
 const { documents: articles, loading } = useDocuments({
-    filter: { 'meta.layout': 'article', 'meta.published': true },
+    filter: { 'meta.component': 'article', 'meta.published': true },
     sort:   { 'meta.date': -1 },
     fields: ['id', 'meta.title', 'meta.date', 'meta.author', 'meta.summary', 'meta.route'],
     limit:  20,

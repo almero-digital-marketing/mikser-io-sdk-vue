@@ -3,7 +3,7 @@ import { useDocuments } from 'mikser-io-sdk-vue'
 
 // Three most recent articles — feeds the home page's "Latest" section.
 const { documents: latest } = useDocuments({
-    filter: { 'meta.layout': 'article', 'meta.published': true },
+    filter: { 'meta.component': 'article', 'meta.published': true },
     sort:   { 'meta.date': -1 },
     fields: ['id', 'meta.title', 'meta.date', 'meta.summary', 'meta.route'],
     limit:  3,

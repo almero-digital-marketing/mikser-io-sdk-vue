@@ -5,7 +5,7 @@ import { useDocuments } from 'mikser-io-sdk-vue'
 const { documents: recent } = useDocuments({
     filter: { type: 'document' },
     sort:   { stamp: -1 },
-    fields: ['id', 'meta.title', 'meta.layout', 'meta.route', 'stamp'],
+    fields: ['id', 'meta.title', 'meta.component', 'meta.route', 'stamp'],
     limit:  15,
 })
 </script>

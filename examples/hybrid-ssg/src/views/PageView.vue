@@ -1,7 +1,7 @@
 <script setup>
 import { useDocument } from 'mikser-io-sdk-vue'
 
-// Fallback view for documents whose meta.layout doesn't match any of
+// Fallback view for documents whose meta.component doesn't match any of
 // the specific views (article / product / landing). Just renders the
 // title and body — sufficient for plain content pages.
 const props = defineProps({ entityId: String })

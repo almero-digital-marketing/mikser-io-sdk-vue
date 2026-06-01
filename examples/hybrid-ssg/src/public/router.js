@@ -1,6 +1,6 @@
 // Public router — reads the build-time manifest, rehydrates the
-// component for each route by looking up the layout in the shared
-// views table.
+// component for each route by looking up meta.component in the
+// shared views table.
 import routes from '../generated/routes.json'
 import { views } from '../route-mapping.js'
 
@@ -11,9 +11,9 @@ export function createRouter() {
         ...routes.map(r => ({
             path:      r.path,
             name:      r.name,
-            component: views[r.layout] ?? views.page,
+            component: views[r.component] ?? views.page,
             props:     () => ({ entityId: r.props?.entityId ?? r.name }),
-            meta:      { layout: r.layout, title: r.title },
+            meta:      { component: r.component, title: r.title },
         })),
         { path: '/:pathMatch(.*)*', component: () => import('../views/NotFound.vue') },
     ]
