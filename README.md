@@ -447,6 +447,69 @@ project/
 
 ---
 
+### C) Mikser-rendered HTML + Vue islands
+
+**When:** Content-heavy sites where most pages are pure content (mikser renders them perfectly) but a few features need interactivity (search box, contact form, filters, live counts).
+
+**The idea:** Mikser is responsible for the HTML. Vue is just an enhancement layer that mounts onto specific DOM nodes the server-rendered HTML emits. No vue-router involved — the URLs are real URLs served as static files.
+
+**Public site:** `mikser build` produces `out/`. Deploy `out/` as static. The HTML includes a mount point for the Vue island:
+
+```html
+<!-- documents/en/search.md → rendered via layouts/page.html.hbs -->
+<article>
+    <h1>{{meta.title}}</h1>
+    <div id="search-island" data-endpoint="public"></div>
+</article>
+```
+
+**Vue island bundle** — separate Vite build, mounted on demand:
+
+```js
+// src/islands/search.js
+import { createApp } from 'vue'
+import { createClient } from 'mikser-io-sdk-api'
+import { createMikserPlugin } from 'mikser-io-sdk-vue'
+import SearchBox from './SearchBox.vue'
+
+const el = document.getElementById('search-island')
+if (el) {
+    const documents = createClient({ baseUrl: '/' })   // same-origin
+        .entities(el.dataset.endpoint)
+    createApp(SearchBox)
+        .use(createMikserPlugin({ client: documents }))
+        .mount(el)
+}
+```
+
+**SearchBox.vue** — uses `useDocuments()` to query mikser for results:
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+import { useDocuments } from 'mikser-io-sdk-vue'
+
+const q = ref('')
+const query = computed(() => ({
+    filter: q.value ? { 'meta.title': { $regex: q.value } } : { id: '__none__' },
+    fields: ['id', 'meta.title'],
+    limit:  10,
+}))
+const { documents } = useDocuments(query)
+</script>
+
+<template>
+    <input v-model="q" placeholder="Search…" />
+    <ul><li v-for="document in documents" :key="document.id">{{ document.meta.title }}</li></ul>
+</template>
+```
+
+**Trade-offs:** Best performance (static HTML + small Vue bundle, lazy-loaded). Simplest deployment (just files). But Vue doesn't own routing — the URL structure is mikser's responsibility.
+
+> **📦 Full starter project:** **[`examples/islands`](./examples/islands)** — three islands (search, booking, cart-counter) and a simulated mikser-rendered HTML page showing where they mount.
+
+---
+
 ### D) Dynamic routes — for catalogs too big to enumerate
 
 **When:** A content catalog past the ~5k–10k route mark where loading every route into a snapshot at boot stops making sense — large blogs, e-commerce catalogs, knowledge bases, document archives.
@@ -516,69 +579,6 @@ So the architecture is:
 When to pick D over A: roughly when `data.catalog.sitemap` projection would emit more than ~1–2 MB. Past that the snapshot is dragging first paint down more than the resolver does.
 
 > **📦 No dedicated starter** — the diff from scenario A is small (drop `initialUrl`, replace registered routes with a catch-all, use `useDocumentByRoute`). The [`examples/pure-spa`](./examples/pure-spa) starter is the right place to start; the [Claude plugin's SPA recipe](https://github.com/almero-digital-marketing/mikser-io-claude-plugin) shows both modes side-by-side.
-
----
-
-### C) Mikser-rendered HTML + Vue islands
-
-**When:** Content-heavy sites where most pages are pure content (mikser renders them perfectly) but a few features need interactivity (search box, contact form, filters, live counts).
-
-**The idea:** Mikser is responsible for the HTML. Vue is just an enhancement layer that mounts onto specific DOM nodes the server-rendered HTML emits. No vue-router involved — the URLs are real URLs served as static files.
-
-**Public site:** `mikser build` produces `out/`. Deploy `out/` as static. The HTML includes a mount point for the Vue island:
-
-```html
-<!-- documents/en/search.md → rendered via layouts/page.html.hbs -->
-<article>
-    <h1>{{meta.title}}</h1>
-    <div id="search-island" data-endpoint="public"></div>
-</article>
-```
-
-**Vue island bundle** — separate Vite build, mounted on demand:
-
-```js
-// src/islands/search.js
-import { createApp } from 'vue'
-import { createClient } from 'mikser-io-sdk-api'
-import { createMikserPlugin } from 'mikser-io-sdk-vue'
-import SearchBox from './SearchBox.vue'
-
-const el = document.getElementById('search-island')
-if (el) {
-    const documents = createClient({ baseUrl: '/' })   // same-origin
-        .entities(el.dataset.endpoint)
-    createApp(SearchBox)
-        .use(createMikserPlugin({ client: documents }))
-        .mount(el)
-}
-```
-
-**SearchBox.vue** — uses `useDocuments()` to query mikser for results:
-
-```vue
-<script setup>
-import { ref, computed } from 'vue'
-import { useDocuments } from 'mikser-io-sdk-vue'
-
-const q = ref('')
-const query = computed(() => ({
-    filter: q.value ? { 'meta.title': { $regex: q.value } } : { id: '__none__' },
-    fields: ['id', 'meta.title'],
-    limit:  10,
-}))
-const { documents } = useDocuments(query)
-</script>
-
-<template>
-    <input v-model="q" placeholder="Search…" />
-    <ul><li v-for="document in documents" :key="document.id">{{ document.meta.title }}</li></ul>
-</template>
-```
-
-**Trade-offs:** Best performance (static HTML + small Vue bundle, lazy-loaded). Simplest deployment (just files). But Vue doesn't own routing — the URL structure is mikser's responsibility.
-
-> **📦 Full starter project:** **[`examples/islands`](./examples/islands)** — three islands (search, booking, cart-counter) and a simulated mikser-rendered HTML page showing where they mount.
 
 ---
 
