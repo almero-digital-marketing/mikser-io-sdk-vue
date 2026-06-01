@@ -47,7 +47,7 @@ export default {
         // layout stays free for mikser's SSG render pipeline (which
         // the islands example uses). component is what the SPA's
         // viewForComponent dispatch table keys off.
-        layoutKey: 'meta.component',
+        schemaKey: 'meta.component',
     },
 
     data: {
