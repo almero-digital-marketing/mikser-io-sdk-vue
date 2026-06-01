@@ -90,7 +90,40 @@ createApp(App)
     .mount('#app')
 ```
 
-The `out/data/sitemap.json` snapshot is produced by the [data plugin's `catalog`](https://github.com/almero-digital-marketing/mikser-io) entry — one filter, one `pick`. See [`examples/mikser-content/mikser.config.js`](./examples/mikser-content/mikser.config.js).
+The `out/data/sitemap.json` snapshot is produced by the `data` plugin's `catalog` config on the mikser side. The block fits in ~10 lines:
+
+```js
+// mikser-content/mikser.config.js  (server side)
+{
+    plugins: ['documents', 'front-matter', 'plugin-schemas', 'data', 'api'],
+    data: {
+        catalog: {
+            // out/data/sitemap.json — every published, component-having
+            // document, projected to just the routing fields.
+            sitemap: {
+                query: e =>
+                    e.type === 'document' &&
+                    e.meta?.published &&
+                    e.meta?.component,
+                pick: ['id', 'destination', 'meta'],
+            },
+        },
+    },
+    api: {
+        endpoints: {
+            public: {
+                query: e => e.type === 'document' && e.meta?.published,
+                operations: ['list', 'subscribe'],
+                cache: true,
+            },
+        },
+    },
+}
+```
+
+The `data` plugin runs at finalize, writes one file per catalog entry under `out/data/`, served as a static asset by mikser's built-in handler. The `pick` projection is enforced server-side so the snapshot stays small. `query` lines up 1:1 with the `live()` filter the SDK opens after first paint — initial state matches what SSE will send.
+
+See [mikser-io-sdk-api → `initialUrl`](https://github.com/almero-digital-marketing/mikser-io-sdk-api#initialurl--pair-with-the-data-plugin-for-fast-first-paint) for the client side, and [`examples/mikser-content/mikser.config.js`](./examples/mikser-content/mikser.config.js) for the full config in context.
 
 The pattern is **augment, don't own**. You write the app you'd write anyway — your own routes, your own router setup, your own catch-all. Mikser slots its routes in alongside yours and keeps them current as content changes.
 
