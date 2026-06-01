@@ -19,7 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 // falling back to a fresh list() call, so the build doesn't drag full
 // markdown bodies through just to enumerate routes.
 const client = createClient({ baseUrl: process.env.MIKSER_URL ?? 'http://localhost:3001' })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 // Use the SAME mapRoute as the runtime router — one source of truth.
 // We strip the component function before serializing (functions don't

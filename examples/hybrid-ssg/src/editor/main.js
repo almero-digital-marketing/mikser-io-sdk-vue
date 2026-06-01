@@ -15,7 +15,7 @@ import App from './App.vue'
 // roundtrip. After it lands the SDK opens a live SSE subscribe on
 // the same /public endpoint for incremental updates.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 // The editor app owns its own router. Hand-coded admin routes are
 // declared here; mikser slots catalog routes in alongside via

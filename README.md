@@ -48,7 +48,7 @@ import App from './App.vue'
 // from a CDN-cacheable file, then SSE deltas keep it current. No second
 // API endpoint to configure.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 // One Vue view per content component. Each lazy-imports so it ships in
 // its own chunk — articles ≠ products ≠ landing pages, code-wise.
@@ -106,6 +106,15 @@ The `out/data/sitemap.json` snapshot is produced by the `data` plugin's `catalog
                     e.meta?.published &&
                     e.meta?.component,
                 pick: ['id', 'destination', 'meta.component', 'meta.route', 'meta.title'],
+            },
+        },
+        entities: {
+            // out/data/<entity.name>.page.json — one file per published
+            // document, with full content. useDocument(id) reads from
+            // these on first paint; live updates still flow over SSE.
+            page: {
+                query: e => e.type === 'document' && e.meta?.published,
+                pick: ['id', 'meta', 'content'],
             },
         },
     },
@@ -353,7 +362,7 @@ import { createMikserPlugin, useMikserRoutes } from 'mikser-io-sdk-vue'
 import App from './App.vue'
 
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 const router = createRouter({
     history: createWebHistory(),
@@ -688,7 +697,7 @@ import App from './App.vue'
 // writes — fast first paint, CDN-cacheable — then live SSE keeps it
 // current.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 // Your router. Your routes. Your guards.
 const router = createRouter({

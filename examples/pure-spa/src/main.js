@@ -12,7 +12,7 @@ import App from './App.vue'
 // updates. No second API endpoint, no second cache file — just one
 // CDN-cacheable static file plus the existing live channel.
 const documents = createClient({ baseUrl: import.meta.env.VITE_MIKSER_URL })
-    .entities('public', { data: { catalog: 'sitemap' } })
+    .entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
 
 // The app owns the router. Static routes are hand-coded; mikser slots
 // catalog routes in alongside via useMikserRoutes below.

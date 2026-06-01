@@ -51,22 +51,33 @@ export default {
     },
 
     data: {
-        // Catalog snapshots are written at finalize — one JSON file per
-        // catalog name under out/data/. Served as a static file by
-        // mikser's built-in static handler, so it's CDN-cacheable and
-        // survives the engine being down.
+        // The data plugin is mikser's static-content essence: every
+        // catalog and entity that gets configured here lands as a JSON
+        // file under out/data/, served by the built-in static handler.
+        // CDN-cacheable, survives the engine being down, and the SDK
+        // reads from these files first before falling back to the API.
         catalog: {
             // out/data/sitemap.json — every published document that
             // declares a meta.component, projected to just the fields
             // the router needs. Consumed by the SDK via
-            //   entities('public', { data: { catalog: 'sitemap' } })
-            // which unwraps the data-plugin envelope automatically.
+            //   entities('public', { data: { catalog: 'sitemap', entities: 'page' } })
             sitemap: {
                 query: e =>
                     e.type === 'document' &&
                     e.meta?.published &&
                     e.meta?.component,
                 pick: ['id', 'destination', 'meta.component', 'meta.route', 'meta.title'],
+            },
+        },
+        entities: {
+            // out/data/<entity.name>.page.json — one file per published
+            // document, with full content. Consumed by the SDK via
+            //   entities('public', { data: { entities: 'page' } })
+            // so useDocument(id) reads from disk on first paint instead
+            // of hitting the API. Live updates still flow over SSE.
+            page: {
+                query: e => e.type === 'document' && e.meta?.published,
+                pick: ['id', 'meta', 'content'],
             },
         },
     },
