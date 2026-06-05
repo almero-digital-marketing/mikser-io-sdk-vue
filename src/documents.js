@@ -13,7 +13,7 @@ import { useMikserClient } from './plugin.js'
  *
  *   const { document, loading, error, refresh } = useDocument(() => props.entityId)
  */
-export function useDocument(id, { client: clientArg } = {}) {
+export function useDocument(id, { client: clientArg, expand, fields } = {}) {
     const client = clientArg ?? useMikserClient()
 
     const document = shallowRef(null)
@@ -43,6 +43,8 @@ export function useDocument(id, { client: clientArg } = {}) {
             },
             {
                 limit: 1,
+                fields,
+                expand,                  // see ADR-0007 — inline-resolve $-refs
                 onError: (err) => {
                     error.value = err
                     loading.value = false
@@ -105,7 +107,7 @@ export function useDocuments(query = {}, { client: clientArg } = {}) {
         error.value = null
         loading.value = true
 
-        const { filter = {}, sort, fields, limit, skip } = currentQuery ?? {}
+        const { filter = {}, sort, fields, limit, skip, expand } = currentQuery ?? {}
         dispose = client.live(
             filter,
             (items) => {
@@ -114,6 +116,7 @@ export function useDocuments(query = {}, { client: clientArg } = {}) {
             },
             {
                 sort, fields, limit, skip,
+                expand,                  // see ADR-0007 — inline-resolve $-refs
                 onError: (err) => {
                     error.value = err
                     loading.value = false
