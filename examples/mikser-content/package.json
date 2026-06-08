@@ -9,8 +9,7 @@
     "preview": "mikser --server"
   },
   "dependencies": {
-    "mikser-io": "^6.22.0",
-    "mikser-io-render-hbs": "^1.0.0",
+    "mikser-io": "^8.2.0",
     "mikser-io-render-markdown": "^3.0.0",
     "mikser-io-schemas": "^0.6.0",
     "zod": "^4.0.0"

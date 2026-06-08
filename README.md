@@ -21,7 +21,7 @@
 
 Built on [`mikser-io-sdk-api`](https://github.com/almero-digital-marketing/mikser-io-sdk-api) — same primitives (`live()`, `list()`, `entities` endpoints, the live-updates contract), wrapped as idiomatic Vue 3.
 
-Zero own dependencies. Vue 3 + Vue Router 4 (optional) + `mikser-io-sdk-api` 2.x as peer deps.
+Zero own dependencies. Vue 3 + Vue Router 4 (optional) + `mikser-io-sdk-api` 3.x as peer deps.
 
 ## Install
 
@@ -1174,7 +1174,7 @@ const { documents: articles } = useDocuments(() => ({
 
 **Path forms:** dot-notation walks expanded entities (`author.organization`); `*` iterates `$`-keyed arrays (`sections.*.image`); both canonical (`$author`) and normalized (`author`) segments are accepted.
 
-**Server caps** default to `maxDepth: 5`, `maxPaths: 20`, `maxResolved: 100` per request — configurable via `api.expand.{...}` in `mikser.config.js`. Exceeding any cap surfaces as a `MikserError` with `status === 422` on the underlying call.
+**Server caps** default to `maxDepth: 5`, `maxPaths: 20`, `maxResolved: 100` per request — configurable via `catalog.expand.{...}` in `mikser.config.js`. Exceeding any cap surfaces as a `MikserError` with `status === 422` on the underlying call.
 
 **SSE deltas stay expanded.** Both the initial snapshot AND every forward update emit fully-expanded entities. The api plugin's subscribe handler registers an engine-level `runtime.refs.subscribeGraph` against the subscription's filter + expand; mutations to *any* entity within the expansion graph (the root, the author, the author's organization, …) trigger a re-emit with the freshly-resolved tree. Reactive consumers see consistent expanded data across the lifetime of the subscription.
 
