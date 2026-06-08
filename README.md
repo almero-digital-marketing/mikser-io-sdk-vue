@@ -17,7 +17,7 @@
 
 **One mental model across every rendering shape** — pure SPA, hybrid SSG with a live editor, mikser-rendered HTML with Vue islands. Same composables, different mount. See [`examples/`](./examples) for the three patterns side-by-side.
 
-**Typed at the seam.** Pair with [`mikser-io-plugin-schemas`](https://github.com/almero-digital-marketing/mikser-io-plugin-schemas) to author Zod schemas alongside your content; `useDocument<{ meta: MetaByLayout<'article'> }>(id)` then carries the front-matter shape straight into your templates.
+**Typed at the seam.** Pair with [`mikser-io-schemas`](https://github.com/almero-digital-marketing/mikser-io-schemas) to author Zod schemas alongside your content; `useDocument<{ meta: MetaByLayout<'article'> }>(id)` then carries the front-matter shape straight into your templates.
 
 Built on [`mikser-io-sdk-api`](https://github.com/almero-digital-marketing/mikser-io-sdk-api) — same primitives (`live()`, `list()`, `entities` endpoints, the live-updates contract), wrapped as idiomatic Vue 3.
 
@@ -653,7 +653,7 @@ const { document, loading, error, refresh } = useDocument(() => props.entityId)
 - Live-updates via `client.live({ id })` under the hood — when the document changes server-side, the ref updates without manual refetch.
 - Disposes the subscription on `onUnmounted`.
 
-`useDocument<T>(...)` is generic — pass the entity shape and `document` is typed accordingly. The recommended source for `T` is the `entities.d.ts` emitted by [`mikser-io-plugin-schemas`](https://github.com/almero-digital-marketing/mikser-io-plugin-schemas), which generates one `XxxMeta` alias per layout from Zod schemas in the mikser project:
+`useDocument<T>(...)` is generic — pass the entity shape and `document` is typed accordingly. The recommended source for `T` is the `entities.d.ts` emitted by [`mikser-io-schemas`](https://github.com/almero-digital-marketing/mikser-io-schemas), which generates one `XxxMeta` alias per layout from Zod schemas in the mikser project:
 
 ```ts
 import type { MetaByLayout } from '../mikser-content/entities'
@@ -662,7 +662,7 @@ const { document } = useDocument<{ meta: MetaByLayout<'article'> }>(id)
 // document.value.meta.title / .author / .summary are all typed
 ```
 
-Without `mikser-io-plugin-schemas`, you can still pass a hand-written interface — `useDocument<MyArticle>(id)` — the SDK doesn't care where `T` comes from.
+Without `mikser-io-schemas`, you can still pass a hand-written interface — `useDocument<MyArticle>(id)` — the SDK doesn't care where `T` comes from.
 
 ### `useDocuments(query, options?)`
 

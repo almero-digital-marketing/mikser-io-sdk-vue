@@ -3,7 +3,7 @@
 // mikser.config.js as a sibling project-level config concern.
 //
 // Kept outside schemas/ on purpose — that folder is for layout schemas
-// (one file per layout name), and mikser-io-plugin-schemas treats every .js
+// (one file per layout name), and mikser-io-schemas treats every .js
 // in there as a schema to register. Cross-cutting field definitions
 // belong somewhere the plugin doesn't scan.
 

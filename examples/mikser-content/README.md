@@ -8,7 +8,7 @@ A standalone mikser project. Run it once, point all three Vue examples at it. Th
 |---|---|
 | `mikser.config.js` | Plugins (`documents`, `layouts`, `plugin-schemas`, `render-hbs`, `render-markdown`, `api`) + a `public` api endpoint with `list` and `subscribe` operations |
 | `layouts/page.html.hbs` | Generic page template — wraps content with header, search island mount point, cart-counter island mount point. Used only by the `islands` example. |
-| `schemas/*.js` | Zod schemas — one per layout (`page`, `article`, `product`, `landing`, `slot`). `mikser-io-plugin-schemas` validates every loaded entity against the schema that matches its `meta.layout`, and emits `entities.d.ts` for the Vue apps to import as types. |
+| `schemas/*.js` | Zod schemas — one per layout (`page`, `article`, `product`, `landing`, `slot`). `mikser-io-schemas` validates every loaded entity against the schema that matches its `meta.layout`, and emits `entities.d.ts` for the Vue apps to import as types. |
 | `documents/en/*` | Pages, articles, products, a landing page, booking slots |
 | `documents/bg/*` | Bulgarian translations of `index` and `about` — demonstrates `useHref()`'s multilingual fallback chain |
 
@@ -103,7 +103,7 @@ Try adding a new file under `documents/en/articles/` while the examples are runn
 
 ## Schemas (typed front-matter)
 
-The `schemas/` folder holds one Zod schema per layout. `mikser-io-plugin-schemas` does two things with them:
+The `schemas/` folder holds one Zod schema per layout. `mikser-io-schemas` does two things with them:
 
 1. **Validates each entity's `meta` against the matching schema** as it's loaded. The demo runs in `onError: 'warn'` mode, so a typo (e.g. dropping `author` from an article) shows up as a server log line — the entity still appears in the catalog and the Vue apps still render it. Flip to `onError: 'fail'` in `mikser.config.js` to make the build exit non-zero on the first invalid entity.
 2. **Emits `entities.d.ts`** at the project root after every build, exposing one `XxxMeta` type per layout plus a `MetaByLayout<L>` helper. The Vue apps import from this file to get typed `useDocument` results:
