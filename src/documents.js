@@ -6,6 +6,24 @@ import { useMikserClient } from './plugin.js'
 
 export const CURRENT_DOCUMENT = Symbol('mikser-io.current-document')
 
+// Normalize a route source to a path string. Accepts (identically
+// across the vue/react/svelte SDKs): a string, a getter returning any
+// of these, or the route object your framework's router already hands
+// you — vue-router's route (`.path`), a react-router location / URL
+// (`.pathname`), or a SvelteKit page (`.url.pathname`). The SDK reads a
+// field; it never imports a router, so it stays router-agnostic while
+// letting you pass `route: useRoute()` instead of `() => route.path`.
+function toRoutePath(route) {
+    if (route == null) return null
+    if (isRef(route)) return toRoutePath(route.value)
+    if (typeof route === 'function') return toRoutePath(route())
+    if (typeof route === 'string') return route
+    if (typeof route.path === 'string') return route.path
+    if (typeof route.pathname === 'string') return route.pathname
+    if (route.url && typeof route.url.pathname === 'string') return route.url.pathname
+    return null
+}
+
 /**
  * Live single-document composable. Resolves the document by id and stays in
  * sync with changes via client.live().
@@ -259,12 +277,13 @@ export function useDocumentByRoute(path, {
  *   // any descendant
  *   const { document } = useCurrentDocument()
  *
- * `route` is a reactive path source (getter / ref / string) — typically
- * `() => useRoute().path`. The SDK stays decoupled from vue-router; the
- * app supplies the path. `resolve` maps a path to the lookup filter
- * (default `meta.route === path`); override for apps that resolve the
- * current document differently. `extraFilter` is merged in (default
- * none — pass `{ 'meta.published': true }` to require published).
+ * `route` is the current-path source. Pass vue-router's route object
+ * directly (`route: useRoute()` — the SDK reads `.path`), or a getter /
+ * ref / plain string. The SDK stays decoupled from vue-router; it reads
+ * a field, never imports a router. `resolve` maps a path to the lookup
+ * filter (default `meta.route === path`); override for apps that
+ * resolve the current document differently. `extraFilter` is merged in
+ * (default none — pass `{ 'meta.published': true }` to require published).
  */
 export function provideCurrentDocument({
     route,
@@ -306,7 +325,7 @@ export function provideCurrentDocument({
     }
 
     watch(
-        () => unref(typeof route === 'function' ? route() : route),
+        () => toRoutePath(route),
         (path) => start(path),
         { immediate: true },
     )
