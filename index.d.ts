@@ -229,16 +229,18 @@ export interface UseAlternatesResult {
 export declare function useAlternates(options: UseAlternatesOptions): UseAlternatesResult
 
 // ---------------------------------------------------------------------------
-// asset() — asset / image reference resolution
+// asset() — preset URL convention + managed-entity lookup
 // ---------------------------------------------------------------------------
 
 export interface AssetRecord {
-    url:    string
-    width?: number
-    height?: number
-    srcset?: string
-    alt?:   string
-    meta?:  Record<string, unknown>
+    url:   string
+    /** Raw entity meta block — opaque (mime, dimensions, duration, …). */
+    meta?: Record<string, unknown>
+}
+
+export interface AssetUrlOptions {
+    /** Preset output format — replaces the source extension (.mp4 → .jpg). */
+    ext?: string
 }
 
 export interface ProvideAssetIndexOptions {
@@ -253,20 +255,17 @@ export declare function provideAssetIndex(
 ): Ref<AssetIndex>
 
 export interface UseAssetResult {
-    /** Returns the full asset record, or null if unknown. */
-    asset: (ref: string) => AssetRecord | null
     /**
-     * Returns an object suitable for spreading onto an <img>:
-     *   { src, width, height, srcset, alt }
+     * URL of a transcoded derivative by the assets() convention, baseUrl
+     * bound from the installed client. Needs no provideAssetIndex.
      */
-    image: (ref: string) => {
-        src:    string
-        width?: number
-        height?: number
-        srcset?: string
-        alt?:   string
-    } | null
-    index: Ref<AssetIndex>
+    assetUrl: (source: string, preset: string, options?: AssetUrlOptions) => string
+    /**
+     * Managed asset entity by reference → { url, meta } | null. Resolves
+     * only when provideAssetIndex() is in a parent.
+     */
+    asset: (ref: string) => AssetRecord | null
+    index: Ref<AssetIndex> | null
 }
 
 export declare function useAsset(): UseAssetResult

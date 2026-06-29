@@ -1,6 +1,6 @@
 # mikser-io-sdk-vue
 
-**Wire a Vue 3 app to a [mikser-io](https://github.com/almero-digital-marketing/mikser-io) content backend in ~10 lines.** Content stays as `.md` and `.yml` files on disk — diffable, grep-able, copy-anywhere. The composables below give you live updates over SSE, typed access to layout-shaped front-matter, multilingual URL resolution, asset metadata, and semantic search.
+**Wire a Vue 3 app to a [mikser-io](https://github.com/almero-digital-marketing/mikser-io) content backend in ~10 lines.** Content stays as `.md` and `.yml` files on disk — diffable, grep-able, copy-anywhere. The composables below give you live updates over SSE, typed access to layout-shaped front-matter, multilingual URL resolution, transcoded asset URLs, and semantic search.
 
 | What you get | Reads as |
 |---|---|
@@ -10,7 +10,7 @@
 | **Multilingual URLs** | `href('/about')` → `/en/about` or `/fr/a-propos` per locale |
 | **Content by reference** | `meta('/menu').products` — read a known document's fields by its logical `$ref`, no extra query |
 | **Hreflang + switchers** | `useAlternates({ route })` |
-| **Asset metadata** | `image('/assets/hero.jpg')` → `{ src, srcset, width, height, alt }` |
+| **Transcoded asset URLs** | `assetUrl(clip, 'presentation')` → `<cms>/assets/presentation/<clip>` |
 | **Semantic search** | `useSimilar(store, query)` with built-in debounce + stale-discard |
 | **Live routes** | `useMikserRoutes(router, { mapRoute })` — augments **your** router, doesn't replace it |
 | **Build-time routes** | `generateMikserRoutes()` for SSG manifests |
@@ -638,7 +638,7 @@ Each export does one job. Mikser augments your app — you own the router; the S
 | `generateMikserRoutes`  | Build-time helper — outputs a routes array for static-build pipelines       |
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
 | `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
-| `provideAssetIndex` / `useAsset`   | Asset / image reference resolution — `/assets/hero.jpg` → real URL + dims  |
+| `useAsset`   | Format-neutral asset helpers — `assetUrl(clip, 'presentation')` builds a transcoded-derivative URL (pure); `asset(ref)` looks up a managed entity (needs `provideAssetIndex`) |
 | `createMikserVectorPlugin` / `useMikserVectorClient` | Bridges `mikser-io-sdk-vector` into Vue's provide/inject       |
 | `useSimilar`                       | Live semantic search with debounce + stale-result discard                   |
 
@@ -1089,9 +1089,32 @@ The Vue-side `href()` mirrors what mikser's own `render-href` plugin does on the
 
 Practical consequence: if you have a hybrid setup (mikser renders some pages statically, Vue renders others), links between them resolve consistently. A mikser-rendered page that points at `/about` and a Vue-rendered page that calls `href('/about')` produce the same URL for the same locale.
 
-## Asset / image references — `provideAssetIndex` + `useAsset`
+## Asset references — `useAsset`
 
-Same pattern, for media. Useful when assets have dimensions or srcset that the template needs.
+mikser's `assets()` plugin is a *preset transcoder* (video, image, pdf, audio…), not an image pipeline — so the SDK's asset helpers are **format-neutral**. `useAsset()` returns `{ assetUrl, asset, index }`.
+
+### `assetUrl(source, preset, { ext })` — the primary helper
+
+Builds a transcoded-derivative URL by the `assets()` plugin convention: `<baseUrl>/assets/<preset>/<source>`. `baseUrl` is bound automatically from the installed client. It's **pure** — needs no `provideAssetIndex`, just call it.
+
+`ext`, when given, is the preset's output format and **replaces** the source extension (a poster preset turns `.mp4` → `.jpg`).
+
+```vue
+<!-- components/Clip.vue -->
+<script setup>
+import { useAsset } from 'mikser-io-sdk-vue'
+const { assetUrl } = useAsset()
+</script>
+
+<template>
+    <video :src="assetUrl(clip, 'presentation')"
+           :poster="assetUrl(clip, 'poster', { ext: 'jpg' })"></video>
+</template>
+```
+
+### `asset(ref)` — managed-entity lookup
+
+Resolves a managed asset *entity* by id to `{ url, meta } | null`. `meta` is the entity's raw meta block — opaque: mime, dimensions, duration, whatever the preset emitted. This is the lookup that needs `provideAssetIndex()` in a parent; without it `asset(ref)` returns null.
 
 ```vue
 <!-- App.vue -->
@@ -1101,26 +1124,14 @@ provideAssetIndex()
 </script>
 ```
 
-```vue
-<!-- components/Hero.vue -->
-<script setup>
-import { useAsset } from 'mikser-io-sdk-vue'
-const { image } = useAsset()
-</script>
-
-<template>
-    <img v-bind="image('/assets/hero.jpg')" />
-</template>
-```
-
-`image(ref)` returns `{ src, width, height, srcset, alt }` — ready to spread onto an `<img>`. Returns `null` for unresolved refs.
-
-For richer access (raw metadata, custom rendering):
-
 ```js
 const { asset } = useAsset()
-const { url, width, height, meta } = asset('/assets/hero.jpg') ?? {}
+const { url, meta } = asset('/assets/hero.jpg') ?? {}
 ```
+
+Image-specific rendering (srcset, `<img>` props) is a consumer concern: read `meta` where you actually know the asset is an image, and build whatever element you need from it.
+
+> `provideAssetIndex` is only needed for `asset(ref)` entity lookups. `assetUrl(...)` is pure and works without it.
 
 ## References & inline expansion
 
