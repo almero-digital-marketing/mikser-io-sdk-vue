@@ -5,6 +5,7 @@
 | What you get | Reads as |
 |---|---|
 | **Live content** | `const { document } = useDocument(id)` — re-renders as the file changes |
+| **Current document** | `useCurrentDocument()` — the current-route document, one shared subscription (provide once at the root) |
 | **Live lists** | `const { documents } = useDocuments({ filter, sort, fields })` |
 | **Multilingual URLs** | `href('/about')` → `/en/about` or `/fr/a-propos` per locale |
 | **Content by reference** | `meta('/menu').products` — read a known document's fields by its logical `$ref`, no extra query |

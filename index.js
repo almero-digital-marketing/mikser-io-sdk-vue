@@ -24,7 +24,10 @@
 // paths are not part of the API contract.
 
 export { createMikserPlugin, useMikserClient } from './src/plugin.js'
-export { useDocument, useDocuments, useDocumentByRoute } from './src/documents.js'
+export {
+    useDocument, useDocuments, useDocumentByRoute,
+    provideCurrentDocument, useCurrentDocument,
+} from './src/documents.js'
 export {
     useMikserRoutes,
     generateMikserRoutes,

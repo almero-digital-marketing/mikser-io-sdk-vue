@@ -1,8 +1,10 @@
 // Document data composables — useDocument (single) and useDocuments (list).
 // Both wrap client.live() in reactive refs and dispose cleanly on scope
 // teardown (component unmount OR standalone effectScope.stop()).
-import { ref, shallowRef, watch, unref, isRef, getCurrentScope, onScopeDispose } from 'vue'
+import { ref, shallowRef, watch, unref, isRef, provide, inject, getCurrentScope, onScopeDispose } from 'vue'
 import { useMikserClient } from './plugin.js'
+
+export const CURRENT_DOCUMENT = Symbol('mikser-io.current-document')
 
 /**
  * Live single-document composable. Resolves the document by id and stays in
@@ -236,4 +238,101 @@ export function useDocumentByRoute(path, {
     }
 
     return { document, loading, error, refresh }
+}
+
+/**
+ * Provide the current-route document ONCE at the app root, shared by
+ * every descendant via useCurrentDocument(). The third member of the
+ * provide-once family alongside provideHrefIndex / provideAssetIndex —
+ * for the singular ambient "current page" document that a content SPA
+ * reads everywhere.
+ *
+ * Without this, each component calling useDocumentByRoute() opens its
+ * own identical live subscription to the same document. This opens ONE,
+ * re-keyed as the route changes, and shares the reactive result.
+ *
+ *   // App.vue (root) — once
+ *   import { useRoute } from 'vue-router'
+ *   const route = useRoute()
+ *   provideCurrentDocument({ route: () => route.path })
+ *
+ *   // any descendant
+ *   const { document } = useCurrentDocument()
+ *
+ * `route` is a reactive path source (getter / ref / string) — typically
+ * `() => useRoute().path`. The SDK stays decoupled from vue-router; the
+ * app supplies the path. `resolve` maps a path to the lookup filter
+ * (default `meta.route === path`); override for apps that resolve the
+ * current document differently. `extraFilter` is merged in (default
+ * none — pass `{ 'meta.published': true }` to require published).
+ */
+export function provideCurrentDocument({
+    route,
+    client: clientArg,
+    resolve = (path) => ({ 'meta.route': path }),
+    extraFilter = {},
+    fields,
+    expand,
+} = {}) {
+    if (route == null) {
+        throw new Error('provideCurrentDocument: { route } is required (a path string, ref, or getter)')
+    }
+    const client = clientArg ?? useMikserClient()
+
+    const document = shallowRef(null)
+    const loading  = ref(true)
+    let dispose = null
+
+    function start(path) {
+        dispose?.()
+        dispose = null
+        document.value = null
+
+        if (path == null || path === '') {
+            loading.value = false
+            return
+        }
+
+        loading.value = true
+        const filter = { ...resolve(path), ...extraFilter }
+        dispose = client.live(
+            filter,
+            (items) => {
+                document.value = items[0] ?? null
+                loading.value = false
+            },
+            { limit: 1, fields, expand, onError: () => { loading.value = false } },
+        )
+    }
+
+    watch(
+        () => unref(typeof route === 'function' ? route() : route),
+        (path) => start(path),
+        { immediate: true },
+    )
+
+    if (getCurrentScope()) {
+        onScopeDispose(() => { dispose?.(); dispose = null })
+    }
+
+    const ctx = { document, loading }
+    provide(CURRENT_DOCUMENT, ctx)
+    return ctx
+}
+
+/**
+ * Inject the shared current-route document. Returns `{ document,
+ * loading }`. Requires provideCurrentDocument() in a parent.
+ *
+ *   const { document } = useCurrentDocument()
+ *   <h1>{{ document?.meta.title }}</h1>
+ */
+export function useCurrentDocument() {
+    const ctx = inject(CURRENT_DOCUMENT, null)
+    if (!ctx) {
+        throw new Error(
+            'useCurrentDocument: provideCurrentDocument() must be called in a parent component first'
+        )
+    }
+    return ctx
 }
