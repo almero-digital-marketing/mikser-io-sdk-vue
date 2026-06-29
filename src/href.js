@@ -49,14 +49,20 @@ export function provideHrefIndex({
 }
 
 /**
- * Inject the href index. Returns `{ href, refFor, index }`.
+ * Inject the href index. Returns `{ href, refFor, doc, meta, index }`.
  *
- *   const { href } = useHref(localeRef)
- *   <router-link :to="href('/about')">About</router-link>
+ *   const { href, meta } = useHref(localeRef)
+ *   <router-link :to="href('/about')">About</router-link>      // ref → URL
  *   <a :href="href('/about', 'fr')">Voir en français</a>
+ *   <ul><li v-for="p in meta('/menu').products">{{ p.name }}</li></ul>  // ref → content
+ *
+ * `href`/`refFor` resolve URLs; `doc`/`meta` resolve the document a
+ * logical reference points at — the content companion. All four are
+ * reactive: the underlying index is a live subscription, so a `meta(ref)`
+ * read in a template re-evaluates when that document changes.
  *
  * `defaultLangRef` can be a string, ref, computed, or omitted. When the
- * caller doesn't pass a lang to href(), this is the fallback.
+ * caller doesn't pass a lang, this is the fallback.
  */
 export function useHref(defaultLangRef) {
     const index = inject(HREF_INDEX, null)
@@ -74,7 +80,15 @@ export function useHref(defaultLangRef) {
         return index.value.refFor(unref(url))
     }
 
-    return { href, refFor, index }
+    function doc(ref, lang) {
+        return index.value.docFor(ref, unref(lang) ?? unref(defaultLangRef))
+    }
+
+    function meta(ref, lang) {
+        return index.value.metaFor(ref, unref(lang) ?? unref(defaultLangRef))
+    }
+
+    return { href, refFor, doc, meta, index }
 }
 
 /**

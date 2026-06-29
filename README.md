@@ -7,6 +7,7 @@
 | **Live content** | `const { document } = useDocument(id)` — re-renders as the file changes |
 | **Live lists** | `const { documents } = useDocuments({ filter, sort, fields })` |
 | **Multilingual URLs** | `href('/about')` → `/en/about` or `/fr/a-propos` per locale |
+| **Content by reference** | `meta('/menu').products` — read a known document's fields by its logical `$ref`, no extra query |
 | **Hreflang + switchers** | `useAlternates({ route })` |
 | **Asset metadata** | `image('/assets/hero.jpg')` → `{ src, srcset, width, height, alt }` |
 | **Semantic search** | `useSimilar(store, query)` with built-in debounce + stale-discard |
@@ -857,6 +858,28 @@ const { href } = useHref(locale)         // reactive — re-resolves when locale
     </nav>
 </template>
 ```
+
+### Content by reference — `meta(ref)` / `doc(ref)`
+
+The href index already loads every published document keyed by its logical `meta.href`, so it doubles as a **content index**. `useHref()` exposes `meta(ref)` (and `doc(ref)`) alongside `href(ref)` — read a known document's fields by its reference without a second query. The natural fit for shared content that's referenced by a stable logical name rather than reached by route: navigation menus, price lists, translation dictionaries, a site-wide settings document.
+
+```vue
+<script setup>
+import { useHref } from 'mikser-io-sdk-vue'
+const { href, meta } = useHref()
+</script>
+
+<template>
+    <!-- href(ref) → URL ; meta(ref) → that document's content. Both reactive. -->
+    <ul class="menu">
+        <li v-for="item in meta('/menu')?.products" :key="item.id">
+            <router-link :to="href(item.ref)">{{ item.name }}</router-link>
+        </li>
+    </ul>
+</template>
+```
+
+`meta(ref)` returns `null` for an unknown ref (vs. `href(ref)` which echoes the ref back so broken links stay visible). It reads from the same live subscription as `href()`, so it re-evaluates when the referenced document changes — and adds no extra request. Pair it with `mikser-io-schemas` to type the returned meta per layout.
 
 When the user toggles `locale.value`, every `:to` binding re-evaluates. No `watch`, no manual update.
 

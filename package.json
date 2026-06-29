@@ -1,6 +1,6 @@
 {
   "name": "mikser-io-sdk-vue",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Vue 3 composables and router integration for mikser-io — live documents, multilingual hrefs, asset resolution",
   "main": "index.js",
   "types": "index.d.ts",
@@ -41,7 +41,7 @@
     "multilingual"
   ],
   "peerDependencies": {
-    "mikser-io-sdk-api": "^3.1.0",
+    "mikser-io-sdk-api": "^3.4.0",
     "vue": "^3.5.35",
     "vue-router": "^4.6.4"
   },
