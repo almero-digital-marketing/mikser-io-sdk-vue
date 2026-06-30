@@ -193,3 +193,48 @@ export function createMikserHistory(history) {
         },
     })
 }
+
+/**
+ * Dev-mode safety net for the silent "no route matched → blank view" class.
+ * vue-router renders an empty <router-view> on an unmatched navigation with
+ * no error — the failure looks like a broken page, not a bad URL.
+ *
+ * Catalog routes carry the canonical href as their `name` and the (often
+ * localized) destination as their `path` — so the most common miss is
+ * reaching for the canonical href *as a path* (`/web` when the route lives
+ * at `/`, `/web/club/login` when it lives at `/клуб/вход`). This hooks
+ * `afterEach`; on an unmatched landing it warns, and when the attempted path
+ * is itself a known route name it points at the real route. Pairs with
+ * createMikserHistory(), which fixes the *other* No-match class (deep-loading
+ * a percent-encoded localized path).
+ *
+ *   if (import.meta.env.DEV) watchUnmatchedRoutes(router)
+ *
+ * Returns vue-router's afterEach teardown; no-op without a router. This only
+ * reports — to actually render something on a miss, add a catch-all route.
+ *
+ * @param {import('vue-router').Router} router
+ * @param {{ warn?: (message: string) => void }} [options]
+ * @returns {() => void}
+ */
+export function watchUnmatchedRoutes(router, { warn = console.warn } = {}) {
+    if (!router || typeof router.afterEach !== 'function') return () => {}
+    return router.afterEach((to) => {
+        if (to.matched && to.matched.length) return
+        let hint = ''
+        // The attempted path is itself a registered route NAME → a canonical
+        // href used where a path belongs. Resolve the name to its real path.
+        if (router.hasRoute?.(to.path)) {
+            try {
+                const target = router.resolve({ name: to.path })
+                hint =
+                    `\n  '${to.path}' is a route name (a canonical href), not a path — ` +
+                    `its route is '${target.path}'. Navigate by name ` +
+                    `(router.push({ name: '${to.path}' })) or use that path.`
+            } catch {
+                // Name needs params we don't have — skip the path hint.
+            }
+        }
+        warn(`[mikser] no route matched '${to.fullPath}' — <router-view> will render empty.${hint}`)
+    })
+}

@@ -32,9 +32,11 @@ export {
     useMikserRoutes,
     generateMikserRoutes,
     createMikserHistory,
+    watchUnmatchedRoutes,
 } from './src/router.js'
 export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
-export { provideAssetIndex, useAsset }          from './src/asset.js'
+export { provideAssetIndex, useAsset, watchAssetFallbacks } from './src/asset.js'
+export { createReactiveCache }                  from './src/cache.js'
 export { useMikserStatus }                      from './src/status.js'
 export {
     createMikserVectorPlugin,

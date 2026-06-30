@@ -1,59 +1,59 @@
 {
-  "name": "mikser-io-sdk-vue",
-  "version": "2.7.0",
-  "description": "Vue 3 composables and router integration for mikser-io — live documents, multilingual hrefs, asset resolution",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "default": "./index.js"
+    "name": "mikser-io-sdk-vue",
+    "version": "2.10.0",
+    "description": "Vue 3 composables and router integration for mikser-io — live documents, multilingual hrefs, asset resolution",
+    "main": "index.js",
+    "types": "index.d.ts",
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./index.d.ts",
+            "default": "./index.js"
+        }
+    },
+    "files": [
+        "index.js",
+        "index.d.ts",
+        "src",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {},
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/almero-digital-marketing/mikser-io-sdk-vue.git"
+    },
+    "author": "",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/almero-digital-marketing/mikser-io-sdk-vue/issues"
+    },
+    "homepage": "https://github.com/almero-digital-marketing/mikser-io-sdk-vue#readme",
+    "keywords": [
+        "mikser",
+        "mikser-io",
+        "sdk",
+        "vue",
+        "vue3",
+        "composables",
+        "vue-router",
+        "i18n",
+        "multilingual"
+    ],
+    "peerDependencies": {
+        "mikser-io-sdk-api": "^3.7.0",
+        "vue": "^3.5.35",
+        "vue-router": "^4.6.4"
+    },
+    "peerDependenciesMeta": {
+        "vue-router": {
+            "optional": true
+        }
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "dependencies": {
+        "@vue/server-renderer": "^3.5.35"
     }
-  },
-  "files": [
-    "index.js",
-    "index.d.ts",
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/almero-digital-marketing/mikser-io-sdk-vue.git"
-  },
-  "author": "",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/almero-digital-marketing/mikser-io-sdk-vue/issues"
-  },
-  "homepage": "https://github.com/almero-digital-marketing/mikser-io-sdk-vue#readme",
-  "keywords": [
-    "mikser",
-    "mikser-io",
-    "sdk",
-    "vue",
-    "vue3",
-    "composables",
-    "vue-router",
-    "i18n",
-    "multilingual"
-  ],
-  "peerDependencies": {
-    "mikser-io-sdk-api": "^3.5.0",
-    "vue": "^3.5.35",
-    "vue-router": "^4.6.4"
-  },
-  "peerDependenciesMeta": {
-    "vue-router": {
-      "optional": true
-    }
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "@vue/server-renderer": "^3.5.35"
-  }
 }

@@ -10,7 +10,7 @@
 | **Multilingual URLs** | `href('/about')` → `/en/about` or `/fr/a-propos` per locale |
 | **Content by reference** | `meta('/menu').products` — read a known document's fields by its logical `$ref`, no extra query |
 | **Hreflang + switchers** | `useAlternates({ route })` |
-| **Transcoded asset URLs** | `assetUrl(clip, 'presentation')` → `<cms>/assets/presentation/<clip>` |
+| **Transcoded asset URLs** | `url(clip.meta.url)` joins a served path from the catalog → `<cms>/...` |
 | **Semantic search** | `useSimilar(store, query)` with built-in debounce + stale-discard |
 | **Live routes** | `useMikserRoutes(router, { mapRoute })` — augments **your** router, doesn't replace it |
 | **Build-time routes** | `generateMikserRoutes()` for SSG manifests |
@@ -634,11 +634,13 @@ Each export does one job. Mikser augments your app — you own the router; the S
 | `useMikserClient`       | Injection accessor for the raw client (rare; the other composables use it)  |
 | `useDocument`           | Reactive single-document composable with live updates                       |
 | `useDocuments`          | Reactive list composable with live updates                                  |
+| `provideCurrentDocument` / `useCurrentDocument` | One shared current-route document for the subtree — provide once, read anywhere. References resolve by default (`$` wildcard); `expand: []` opts out |
 | `useMikserRoutes`   | Live diff (addRoute / removeRoute) against your existing router. Returns `{ dispose, seeded }`. |
 | `generateMikserRoutes`  | Build-time helper — outputs a routes array for static-build pipelines       |
 | `provideHrefIndex` / `useHref`     | Multilingual URL abstraction — resolve `/about` → `/en/about` per locale |
 | `useAlternates`                    | Alternate-language URLs for the current route — language switchers + SEO hreflang |
-| `useAsset`   | Format-neutral asset helpers — `assetUrl(clip, 'presentation')` builds a transcoded-derivative URL (pure); `asset(ref)` looks up a managed entity (needs `provideAssetIndex`) |
+| `useAsset`   | Format-neutral asset helpers — `url(ref)` joins a deployed served path to the client base; `asset(ref)` looks up a managed entity (needs `provideAssetIndex`) |
+| `createReactiveCache`              | Load-once, expand-capable reactive content cache — readable from non-component code (Pinia stores, plain modules), not just templates |
 | `createMikserVectorPlugin` / `useMikserVectorClient` | Bridges `mikser-io-sdk-vector` into Vue's provide/inject       |
 | `useSimilar`                       | Live semantic search with debounce + stale-result discard                   |
 
@@ -679,6 +681,77 @@ const { documents, loading, error, refresh } = useDocuments({
 
 - `query` can be a static object, a Ref, or a getter. Deep-watched — when the filter / sort / fields / limit change, the subscription re-evaluates.
 - `documents` is reactive — pushes to `<v-for>` update in place as the underlying content changes.
+
+## The current-route document
+
+Most routes render one document end-to-end — the page `<head>`, the body copy, the media. `provideCurrentDocument` loads that document once for the current route and shares it with the whole subtree; every child reads it with `useCurrentDocument()`. No prop-drilling, no global, one subscription.
+
+```js
+// App.vue — wraps every route
+import { provideCurrentDocument } from 'mikser-io-sdk-vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const { document, loading } = provideCurrentDocument({
+    route: () => route.path,   // a path string, Ref, or getter — the SDK reads it, never imports your router
+    expand: [],                // ← the one decision that matters; see below
+})
+useHead(/* derive from document.value?.meta.head */)
+```
+
+```js
+// any descendant
+const { document } = useCurrentDocument()
+```
+
+### Who owns the references
+
+A document carries `$`-keyed references — a `$video`, a `$hero`, a list of `$related`. Resolving them is [`expand`'s](#references--inline-expansion) job, and **the default is the `$` wildcard**: call `provideCurrentDocument` with no `expand` and the document arrives with every reference resolved. That's the right default — a document should come whole.
+
+But the root provide in `App.vue` is the wrong place to do that resolving. It serves two kinds of consumer, and it's the ancestor of **every** route:
+
+- the page `<head>` and components that read **plain fields** (`meta.title`, `meta.prices`) never touch a reference;
+- a uniform expand at the root would make the login form resolve the product videos it never renders.
+
+So the root provide opts **out** — `expand: []` — and each view that actually renders references provides its **own** current-route document. That provide shadows the root for its subtree and takes the default `['$']`:
+
+```js
+// views/Home.vue — renders the presentation + FAQ videos
+import { provideCurrentDocument } from 'mikser-io-sdk-vue'
+import { useRoute } from 'vue-router'
+const route = useRoute()
+const { document } = provideCurrentDocument({ route: () => route.path })  // default expand: ['$']
+```
+
+The principle: **a document doesn't know its consumers, so the consumer declares what to resolve.** Not the document (different views of the same doc want different shapes), not the route table (same problem), not one app-level provide (it resolves for routes that render nothing). The view that renders the references is the one that knows it needs them — so it owns the `expand`. `['$']` is the default because *resolved* is the common case; `[]` is the opt-out for the plain-field path.
+
+> Rejected on the way here: a single central expand (couples unrelated routes; the head path pays for refs it never reads) and a document- or route-**declared** expand (the document would have to know who consumes it — it doesn't). Consumer-owned is the one that holds up.
+
+### The route-binding wrapper
+
+`provideCurrentDocument` is router-agnostic on purpose — it reads a path, it doesn't import vue-router. Bind it once in a small app composable, and every view calls a no-arg helper:
+
+```js
+// composables/document.js
+import { useRoute } from 'vue-router'
+import { provideCurrentDocument } from 'mikser-io-sdk-vue'
+import { client } from '../lib/mikser'
+
+// A view owns its document load; references resolve by default ($ wildcard).
+// Pass [] to opt out, or a path list to narrow.
+export function provideRouteDocument(expand) {
+    const route = useRoute()
+    return provideCurrentDocument({ client, route: () => route.path, expand })
+}
+```
+
+```js
+// App.vue                       → provideRouteDocument([])   // neutral: head + plain fields
+// views/Home.vue (renders refs) → provideRouteDocument()     // default ['$']: refs resolved
+// a child component             → useCurrentDocument()       // reads whichever provide is nearest
+```
+
+One neutral provide at the root, a per-view override wherever references are rendered, and the consumer — never the document — choosing the resolution. That's the whole architecture.
 
 ## Router integration
 
@@ -1091,24 +1164,26 @@ Practical consequence: if you have a hybrid setup (mikser renders some pages sta
 
 ## Asset references — `useAsset`
 
-mikser's `assets()` plugin is a *preset transcoder* (video, image, pdf, audio…), not an image pipeline — so the SDK's asset helpers are **format-neutral**. `useAsset()` returns `{ assetUrl, asset, index }`.
+mikser's `assets()` plugin is a *preset transcoder* (video, image, pdf, audio…), not an image pipeline — so the SDK's asset helpers are **format-neutral**. `useAsset()` returns `{ url, asset, index }`.
 
-### `assetUrl(source, preset, { ext })` — the primary helper
+### `url(ref)` — the primary helper
 
-Builds a transcoded-derivative URL by the `assets()` plugin convention: `<baseUrl>/assets/<preset>/<source>`. `baseUrl` is bound automatically from the installed client. It's **pure** — needs no `provideAssetIndex`, just call it.
+Joins a deployed, base-relative served path to the client base. The path is the one mikser's engine stamped into entity meta — `meta.url` for a served file, `meta.presets.<name>` for a transcoded derivative — and surfaced into the catalog via `expand`. One rule covers files and derivatives alike. The base is bound automatically from the installed client; nothing is constructed client-side, so there's no `/assets/<preset>/<source>` assembly to keep in sync with the plugin.
 
-`ext`, when given, is the preset's output format and **replaces** the source extension (a poster preset turns `.mp4` → `.jpg`).
+`watchAssetFallbacks()` is also exported — call it in dev to catch served URLs that resolve to the SPA fallback (a missing base prefix or an unexpanded ref shows up as an `<img>`/`<video>` that fetched HTML instead of media).
+
+`watchUnmatchedRoutes(router)` is the routing sibling — call it in dev to catch the other silent class: a navigation that matches no route renders an empty `<router-view>` with no error. Catalog routes name the canonical href (`/web`) and live at the localized path (`/`), so reaching for the href as a path is the common miss; the warning resolves the name to the real route (`'/web' … its route is '/'`). Pairs with `createMikserHistory()`, which fixes the deep-load percent-encoding miss.
 
 ```vue
 <!-- components/Clip.vue -->
 <script setup>
 import { useAsset } from 'mikser-io-sdk-vue'
-const { assetUrl } = useAsset()
+const { url } = useAsset()
 </script>
 
 <template>
-    <video :src="assetUrl(clip, 'presentation')"
-           :poster="assetUrl(clip, 'poster', { ext: 'jpg' })"></video>
+    <video :src="url(clip.meta.url)"
+           :poster="url(clip.meta.presets.poster)"></video>
 </template>
 ```
 
@@ -1131,7 +1206,7 @@ const { url, meta } = asset('/assets/hero.jpg') ?? {}
 
 Image-specific rendering (srcset, `<img>` props) is a consumer concern: read `meta` where you actually know the asset is an image, and build whatever element you need from it.
 
-> `provideAssetIndex` is only needed for `asset(ref)` entity lookups. `assetUrl(...)` is pure and works without it.
+> `provideAssetIndex` is only needed for `asset(ref)` entity lookups. `url(...)` works without it.
 
 ## References & inline expansion
 
@@ -1225,6 +1300,66 @@ const { items } = await client.entities('public').list({
 ```
 
 Missing targets or cycles silently leave the ref as a string at the deepest position — same convention as the underlying api, per ADR-0007 B6.
+
+## Reactive content cache — `createReactiveCache`
+
+The composables above (`useDocument`, `useHref` / `meta`) live inside a component's inject context — call them in `setup`, never in a Pinia store action or a plain module. `createReactiveCache` is the escape hatch: a **plain factory**, not a composable. It works anywhere — Pinia store actions *and* getters, plain `.js` modules, anywhere outside a component — because it carries its own state instead of reaching for `inject`. Create it once and share the instance.
+
+It's a thin Vue shell around `mikser-io-sdk-api`'s framework-agnostic `createCache`. The win Vue adds is the **sync, reactive read**: `documentSync()` returns the loaded doc immediately and re-evaluates when the load lands — it bridges the core cache's `subscribe` to a Vue reactivity tick. That's the half a composable can't give you from a Pinia getter.
+
+```js
+// lib/mikser.js — module scope, no component context needed
+import { createReactiveCache } from 'mikser-io-sdk-vue'
+import { client } from './client.js'
+
+export const content = createReactiveCache(client.entities('public'))
+```
+
+```js
+// a Pinia store
+import { defineStore } from 'pinia'
+import { content } from '../lib/mikser.js'
+
+export const useSystemStore = defineStore('system', {
+    actions: {
+        // async — load + memoize. Use from actions.
+        loadProducts() {
+            return content.document('/system/products', { expand: ['products.*.video'] })
+        },
+    },
+    getters: {
+        // sync + reactive — re-evaluates when the load lands. Use from getters.
+        translationErrors: () => content.documentSync('/system/translation')?.meta.errors,
+    },
+})
+```
+
+### API
+
+`const content = createReactiveCache(client.entities('public'))` returns:
+
+| Member | What it does |
+|---|---|
+| `content.document(href, { expand } = {})` | **async** — loads + memoizes the doc at that logical `meta.href`, resolves to the doc (`items[0]`) or `null`. References resolve by default (`$` wildcard); pass `expand: []` to opt out or a path list to narrow. Use from store actions. |
+| `content.documentSync(href, { expand } = {})` | **sync + reactive** — returns the loaded doc or `null`, and re-evaluates when the load lands. Same default expand as `document()`. Use from Pinia getters / sync template helpers — this is the half composables can't do. |
+| `content.load(query, opts)` / `content.read(query)` | The same async / sync pair, but for arbitrary list queries (returns the full envelope). |
+| `content.invalidate(query?)` | Drop one entry, or the whole cache when called with no argument. |
+| `content.cache` | The underlying `mikser-io-sdk-api` cache, if you need it. |
+
+The cache key folds in `expand` — a doc fetched *with* expand is a different shape from the same doc *without*, so they're distinct entries.
+
+### When to reach for it vs. the live href index
+
+It **pairs with** the live href index (`useHref` / `meta`), it doesn't replace it:
+
+| | `meta(ref)` (live href index) | `createReactiveCache` |
+|---|---|---|
+| Freshness | Always-fresh — backed by an SSE subscription | Load-once — re-fetch only on `invalidate` |
+| `expand` | No | Yes |
+| Readable from | Components only (it's a composable) | Anywhere — stores, modules, components |
+| Best for | Changing feeds, anything edited live | System docs, nav, settings — read often, change rarely |
+
+Reach for `live()` / `meta()` when the content changes under you and the UI must track it. Reach for `createReactiveCache` for the load-once, expand-capable, read-from-anywhere content that backs a store.
 
 ## Semantic search — `createMikserVectorPlugin` + `useSimilar`
 

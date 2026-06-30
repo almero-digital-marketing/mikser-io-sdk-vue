@@ -75,6 +75,47 @@ export declare function useDocuments<T = unknown>(
     options?: UseComposableOptions,
 ): UseDocumentsResult<T>
 
+export interface ProvideCurrentDocumentOptions {
+    /**
+     * Current-path source. Pass vue-router's route object (`route: useRoute()`
+     * — the SDK reads `.path`), a getter, a Ref, or a plain string.
+     */
+    route: MaybeRef<string | null | undefined> | (() => string | null | undefined) | { readonly path: string }
+    /** Override the injected client. */
+    client?: EntitiesClient
+    /** Map a path to the lookup filter (default `{ 'meta.route': path }`). */
+    resolve?: (path: string) => Record<string, unknown>
+    /** Extra filter clauses merged into the lookup (default none). */
+    extraFilter?: Record<string, unknown>
+    /** Restrict the projected fields (default all). */
+    fields?: string[]
+    /**
+     * References to resolve. Defaults to the `$` wildcard — a document comes
+     * with every reference resolved (ADR-0007). Pass `[]` to opt out (e.g. a
+     * consumer that only reads plain fields), or a path list to narrow it.
+     */
+    expand?: string[]
+}
+
+export interface CurrentDocumentResult<T = unknown> {
+    /** The current-route document, or null while loading / when missing. */
+    document: Ref<T | null>
+    /** True until the initial fetch resolves. */
+    loading:  Ref<boolean>
+}
+
+/**
+ * Provide one shared current-route document subscription to descendants;
+ * read it anywhere below with useCurrentDocument(). References resolve by
+ * default (`$` wildcard) — pass `expand: []` to opt out.
+ */
+export declare function provideCurrentDocument<T = unknown>(
+    options: ProvideCurrentDocumentOptions,
+): CurrentDocumentResult<T>
+
+/** Read the shared current-route document from a provideCurrentDocument() ancestor. */
+export declare function useCurrentDocument<T = unknown>(): CurrentDocumentResult<T>
+
 // ---------------------------------------------------------------------------
 // Router integration
 // ---------------------------------------------------------------------------
@@ -140,6 +181,20 @@ export declare function generateMikserRoutes(
  *   createRouter({ history: createMikserHistory(createWebHistory()), routes })
  */
 export declare function createMikserHistory<H extends RouterHistory>(history: H): H
+
+/**
+ * Dev-mode detector for the silent "no route matched → empty `<router-view>`"
+ * class. Hooks `afterEach`; on an unmatched landing it warns, and when the
+ * attempted path is itself a route name (a canonical href used as a path,
+ * e.g. `/web` when the route lives at `/`) it points at the real route.
+ * Returns vue-router's afterEach teardown; no-op without a router.
+ *
+ *   if (import.meta.env.DEV) watchUnmatchedRoutes(router)
+ */
+export declare function watchUnmatchedRoutes(
+    router: Router,
+    options?: { warn?: (message: string) => void },
+): () => void
 
 // ---------------------------------------------------------------------------
 // href() — multilingual URL abstraction
@@ -268,10 +323,10 @@ export declare function provideAssetIndex(
 
 export interface UseAssetResult {
     /**
-     * URL of a transcoded derivative by the assets() convention, baseUrl
-     * bound from the installed client. Needs no provideAssetIndex.
+     * Resolve a served ref to a deployed URL, baseUrl bound from the
+     * installed client. Needs no provideAssetIndex.
      */
-    assetUrl: (source: string, preset: string, options?: AssetUrlOptions) => string
+    url: (ref?: string) => string
     /**
      * Managed asset entity by reference → { url, meta } | null. Resolves
      * only when provideAssetIndex() is in a parent.
@@ -281,6 +336,12 @@ export interface UseAssetResult {
 }
 
 export declare function useAsset(): UseAssetResult
+
+/**
+ * Dev-mode load-failure warner: logs a warning when an <img>/<video>
+ * fails to load. Returns a teardown function. No-op outside a browser.
+ */
+export declare function watchAssetFallbacks(options?: { doc?: Document; warn?: (message: string) => void }): () => void
 
 // ---------------------------------------------------------------------------
 // vector() — semantic search (pairs with mikser-io-sdk-vector)
@@ -382,3 +443,29 @@ export interface UseMikserStatusOptions {
  *   // <RouterView v-if="status === 'ready'" />
  */
 export declare function useMikserStatus(options?: UseMikserStatusOptions): Ref<MikserStatus>
+
+// ---------------------------------------------------------------------------
+// Reactive content cache
+// ---------------------------------------------------------------------------
+
+/**
+ * Reactive wrapper over the sdk-api cache. Reads trigger Vue reactivity,
+ * so components re-render when cached content is loaded or invalidated.
+ */
+export interface ReactiveContentCache {
+    /** Fetch (and cache) the envelope for a query; resolves from cache when present. */
+    load(query?: object, options?: object): Promise<object>
+    /** Synchronously read a cached envelope without fetching, or undefined when absent. */
+    read(query?: object): object | undefined
+    /** Drop the cached envelope for the query and notify subscribers. */
+    invalidate(query?: object): void
+    /** Resolve a single document by href; references resolve by default (`$` wildcard, `expand: []` to opt out). */
+    document(href: string, options?: { expand?: string[] }): Promise<any | null>
+    /** Synchronous form of document() — returns the cached document or null. */
+    documentSync(href: string, options?: { expand?: string[] }): any | null
+    /** The underlying sdk-api cache instance. */
+    cache: any
+}
+
+/** Build a {@link ReactiveContentCache} over an entities client. */
+export declare function createReactiveCache(docs: any): ReactiveContentCache
