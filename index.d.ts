@@ -10,6 +10,7 @@ import type {
 import type {
     Router,
     RouteRecordRaw,
+    RouterHistory,
 } from 'vue-router'
 
 // ---------------------------------------------------------------------------
@@ -128,6 +129,17 @@ export interface GenerateMikserRoutesOptions {
 export declare function generateMikserRoutes(
     options: GenerateMikserRoutesOptions,
 ): Promise<RouteRecordRaw[]>
+
+/**
+ * Wrap a vue-router history so localized (non-ASCII) route paths match on
+ * deep-load / refresh, where the browser hands back a percent-encoded
+ * `location.pathname`. Pass the base history; the returned wrapper decodes
+ * the location vue-router reads (`decodeURI`). Generic over the history
+ * type so the wrapper is assignable wherever the base history was.
+ *
+ *   createRouter({ history: createMikserHistory(createWebHistory()), routes })
+ */
+export declare function createMikserHistory<H extends RouterHistory>(history: H): H
 
 // ---------------------------------------------------------------------------
 // href() — multilingual URL abstraction

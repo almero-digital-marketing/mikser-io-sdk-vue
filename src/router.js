@@ -1,4 +1,4 @@
-// Router integration — two shapes. Mikser augments your app's router;
+// Router integration — three shapes. Mikser augments your app's router;
 // it doesn't own it.
 //
 //   useMikserRoutes(router, opts) — applies catalog routes to an
@@ -11,6 +11,12 @@
 //   generateMikserRoutes(opts)        — one-shot Promise<RouteRecordRaw[]>
 //                                      for build-time / SSG. No
 //                                      subscription, no router involvement.
+//
+//   createMikserHistory(history)      — wraps a vue-router history so
+//                                      non-ASCII (localized) route paths
+//                                      match on deep-load. Takes the base
+//                                      history so this module never imports
+//                                      vue-router (its optional peer).
 //
 // For anything else (admin pickers listing documents, sitemap UIs,
 // debug panels), use useDocuments — it gives you the live document
@@ -141,3 +147,49 @@ export function useMikserRoutes(router, {
 // share the same enumeration + filter defaults. Re-export here so Vue
 // users still import it from their framework package.
 export { generateMikserRoutes } from 'mikser-io-sdk-api'
+
+/**
+ * Wrap a vue-router history so localized (non-ASCII) route paths match on
+ * deep-load and refresh.
+ *
+ *   const router = createRouter({
+ *       history: createMikserHistory(createWebHistory()),
+ *       routes,
+ *   })
+ *
+ * Why it's needed: a route defined with a readable Unicode path (e.g.
+ * `/запазване-час`, the kind generateMikserRoutes emits from a localized
+ * `meta.route`) is stored decoded, but on a deep-load/refresh the browser
+ * hands vue-router a percent-encoded `location.pathname`
+ * (`/%D0%B7%D0%B0%D0%BF...`) that won't match it — you get a spurious "No
+ * match" and a blank view. In-app navigation works (push targets are
+ * already decoded); only the initial-from-URL case breaks.
+ *
+ * This wraps the *base* history (you pass `createWebHistory()` /
+ * `createWebHashHistory()`) and decodes the location vue-router reads — on
+ * the `location` getter and the `listen()` callback — with `decodeURI`
+ * (not decodeURIComponent, so `/ ? #` stay structural). Routes stay
+ * readable, matching is decoded-vs-decoded, and there's no redirect or
+ * catch-all. Taking the history as an argument keeps this module from
+ * importing vue-router (its optional peer).
+ *
+ * @template {object} H
+ * @param {H} history  A vue-router RouterHistory (createWebHistory(), …).
+ * @returns {H}
+ */
+export function createMikserHistory(history) {
+    const decode = (loc) => {
+        if (typeof loc !== 'string') return loc
+        try { return decodeURI(loc) } catch { return loc }
+    }
+    return new Proxy(history, {
+        get(target, prop) {
+            if (prop === 'location') return decode(target.location)
+            if (prop === 'listen') {
+                return (cb) => target.listen((to, from, info) => cb(decode(to), decode(from), info))
+            }
+            const value = target[prop]
+            return typeof value === 'function' ? value.bind(target) : value
+        },
+    })
+}

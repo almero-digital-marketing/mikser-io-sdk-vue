@@ -31,6 +31,7 @@ export {
 export {
     useMikserRoutes,
     generateMikserRoutes,
+    createMikserHistory,
 } from './src/router.js'
 export { provideHrefIndex, useHref, useAlternates } from './src/href.js'
 export { provideAssetIndex, useAsset }          from './src/asset.js'
