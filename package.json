@@ -1,7 +1,7 @@
 {
   "name": "mikser-io-sdk-vue",
   "version": "2.10.0",
-  "description": "Vue 3 composables and router integration for mikser-io \u2014 live documents, multilingual hrefs, asset resolution",
+  "description": "Vue 3 composables and router integration for mikser-io — live documents, multilingual hrefs, asset resolution",
   "main": "index.js",
   "types": "index.d.ts",
   "type": "module",
@@ -18,7 +18,9 @@
     "README.md",
     "LICENSE"
   ],
-  "scripts": {},
+  "scripts": {
+    "test": "vitest run"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/almero-digital-marketing/mikser-io-sdk-vue.git"
@@ -57,7 +59,10 @@
     "@vue/server-renderer": "^3.5.35"
   },
   "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^25.0.0",
     "mikser-io-sdk-api": "^3.7.0",
+    "vitest": "^3.0.0",
     "vue": "^3.5.35",
     "vue-router": "^4.6.4"
   }
